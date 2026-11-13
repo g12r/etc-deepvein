@@ -1,0 +1,21 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1300,height:1000}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file://'+__dirname+'/../deepvein.html');await p.waitForTimeout(1000);await p.click('.ov [data-close]').catch(()=>{});
+const r=await p.evaluate(()=>{const M=window.__mine,W=M.W(),S=M.SURF();const x=40,s=S[x];for(let y=s;y<=s+9;y++)W[M.idx(x,y)]=0;W[M.idx(x,s+8)]=0;M.p.x=x+.5;M.p.y=s+10;
+ const cnt=sh=>{let n=0;for(let xx=sh.x0;xx<sh.x0+sh.w;xx++)for(let yy=sh.y0;yy<sh.y0+sh.h;yy++)if(W[M.idx(xx,yy)])n++;return n;};
+ const out={};const feet=s+9;
+ let sh=M.blastShape(x+1,feet,x+1.5,feet+.5,false);out.right={sh,before:cnt(sh)};M.explode(sh,1);out.right.after=cnt(sh);
+ sh=M.blastShape(x-1,feet-1,x-.5,feet-.5,true);out.leftFast={sh,before:cnt(sh)};M.explode(sh,1.35);out.leftFast.after=cnt(sh);
+ sh=M.blastShape(x,feet+1,x+.2,feet+1.5,false);out.down={sh,before:cnt(sh)};M.explode(sh,1);out.down.after=cnt(sh);
+ out.player={x:M.p.x,y:M.p.y};return out;});
+console.log(JSON.stringify(r));
+// real UI: select dynamite, hover, click, answer
+await p.evaluate(()=>{const M=window.__mine;M.G.pack.dyn=2;M.p.x=20.5;M.p.y=M.SURF()[20];M.p.vx=0;});await p.waitForTimeout(600);
+await p.keyboard.press('5');const cv=await p.$('#mine canvas');const bb=await cv.boundingBox();
+const pos=await p.evaluate(()=>{const M=window.__mine;return {x:M.p.x,y:M.p.y};});
+const P=bb.width/22,vh=bb.height/P,cx=Math.max(0,Math.min(90,pos.x-11)),cy=Math.max(0,Math.min(84-vh,pos.y-1-vh*.5));
+const sx=bb.x+(pos.x-cx)*P, sy=bb.y+(pos.y+1.5-cy)*P;await p.mouse.move(sx,sy);await p.waitForTimeout(400);await cv.screenshot({path:'d1.png'});
+await p.mouse.click(sx,sy);await p.waitForTimeout(500);console.log('overlay:',await p.$eval('.ov .sub',e=>e.textContent));
+const ans=await p.evaluate(()=>{const t=document.querySelector('.ov .sub').textContent.match(/(\d+) rows? of (\d+)/);return t[1]*t[2];});
+await p.keyboard.type(String(ans));await p.keyboard.press('Enter');await p.waitForTimeout(900);await cv.screenshot({path:'d2.png'});await p.waitForTimeout(1500);await cv.screenshot({path:'d3.png'});
+console.log('dyn left',await p.evaluate(()=>window.__mine.G.pack.dyn),'errs',JSON.stringify(errs));await b.close();})();

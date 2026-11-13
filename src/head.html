@@ -1,9 +1,9 @@
-<title>Deepvein 1.0</title>
+<title>Deepvein 2.0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <style>
-html,body{margin:0}*,*::before,*::after{box-sizing:border-box}[hidden]{display:none!important}img{max-width:100%}
 /* Layout: one big mine window, with the claim's to-do list and the mine rules below it. Single dark look by design. */
 :root{
   --rock:#16110d; --rock-2:#211a14; --rock-3:#2e251c; --line:#43372a;
@@ -50,7 +50,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 /* overlays */
 .ov{position:absolute;inset:0;background:rgba(9,6,4,.8);display:flex;align-items:center;justify-content:center;padding:12px;z-index:6}
-.card{background:var(--rock-3);border:2px solid var(--lamp);border-radius:10px;padding:14px 18px 16px;width:min(600px,96%);max-height:96%;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.card{background:var(--rock-3);border:2px solid var(--lamp);border-radius:10px;padding:14px 18px 16px;width:min(640px,96%);max-height:96%;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.6)}
 .card h3{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0;color:var(--gold)}
 .card h4{font-family:var(--label);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.85rem;color:var(--lamp);margin:12px 0 0}
 .card .sub{color:var(--muted);margin:2px 0 8px;font-size:.95rem}
@@ -90,6 +90,49 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .keys kbd{font-family:var(--label);font-weight:600;color:var(--fg);background:var(--rock-3);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px}
 .under{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
 .fine{color:var(--muted);font-size:.9rem;margin-top:16px;max-width:76ch}
+.chip.day{display:inline-flex;align-items:center;gap:6px;color:var(--fg)}
+.oil{display:inline-block;width:54px;height:8px;border-radius:4px;background:rgba(0,0,0,.6);border:1px solid var(--line);position:relative;overflow:hidden}
+.oil::after{content:"";position:absolute;inset:0;width:var(--v,100%);background:var(--lamp)}
+.oil.low::after{background:var(--warn)}
+.chip .ge{color:#c9a8f0}
+.goal{position:absolute;left:10px;bottom:10px;max-width:24%;background:rgba(14,10,7,.82);border:1px solid var(--line);border-left:3px solid var(--lamp);border-radius:6px;padding:4px 10px;font-family:var(--label);font-weight:600;font-size:.9rem;letter-spacing:.03em;color:var(--fg);z-index:2;pointer-events:none}
+.jbtn{position:absolute;right:10px;bottom:10px;z-index:2;background:rgba(14,10,7,.86);border:2px solid var(--line);color:var(--fg);text-transform:none;font-size:.9rem;padding:5px 10px}
+.jbtn kbd{font-family:var(--label);background:var(--rock-3);border:1px solid var(--line);border-radius:3px;padding:0 5px;margin-left:4px;color:var(--lamp)}
+@media (max-width:900px){.goal{display:none}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.tab{background:transparent;border:1px solid var(--line);color:var(--muted);text-transform:none;font-size:.95rem;padding:5px 12px}
+.tab[aria-pressed="true"]{background:var(--lamp);color:#1a120a;border-color:var(--lamp)}
+.fc{color:var(--fg)}
+.offer{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.offer.on{border:1px solid var(--lamp);border-radius:8px;padding:9px 12px;margin-bottom:8px;background:rgba(0,0,0,.2)}
+.offer .ds{color:var(--muted);font-size:.9rem}
+.rowpicks{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 4px}
+.rowpick{display:flex;flex-direction:column;align-items:center;min-width:44px;background:transparent;border:1px solid var(--line);color:var(--fg);text-transform:none;font-size:.9rem;padding:3px 7px;line-height:1.15}
+.rowpick small{font-size:.68rem;color:var(--muted)}
+.rowpick[aria-pressed="true"]{border-color:var(--lamp);background:rgba(242,179,61,.18)}
+.rowpick.done{border-color:var(--gold)}.rowpick.done small{color:var(--gold)}
+.perks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.perks{grid-template-columns:1fr}}
+.perkcard{display:flex;flex-direction:column;gap:6px;text-align:left;text-transform:none;letter-spacing:0;background:var(--rock-2);border:2px solid var(--line);color:var(--fg);padding:12px;font-family:var(--body);font-weight:400;font-size:.92rem;line-height:1.35}
+.perkcard b{font-family:var(--display);font-weight:400;font-size:1.1rem;color:var(--gold)}
+.perkcard i{font-style:normal;color:var(--lamp);font-size:.82rem}
+.perkcard:hover{border-color:var(--lamp)}
+.headline{font-family:var(--display);font-size:1.05rem;color:var(--fg);margin:8px 0;line-height:1.3}
+.sumgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+.sumgrid div{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.sumgrid b{display:block;font-family:var(--display);font-weight:400;font-size:1.3rem;color:var(--gold)}
+.sumgrid span{font-family:var(--label);font-size:.8rem;color:var(--muted);letter-spacing:.04em}
+.news{margin:6px 0 0;padding-left:18px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.news b{color:var(--fg)}
+.claimmap{display:block;width:auto;max-width:100%;max-height:min(52vh,400px);margin:0 auto;image-rendering:pixelated;border:1px solid var(--line);border-radius:6px;background:#14100d}
+.trophies{display:flex;flex-wrap:wrap;gap:6px}
+.trophy{font-family:var(--label);font-size:.85rem;font-weight:600;letter-spacing:.03em;border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:#6d604f}
+.trophy.on{border-color:var(--gold);color:var(--gold)}
+.dealtag{font-family:var(--label);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:var(--tnt);color:#fff;border-radius:4px;padding:0 6px;margin-left:6px}
+.card .map{grid-template-columns:repeat(11,34px);grid-auto-rows:26px}
+.fsbtn{right:126px}
+.stage.fill{position:fixed;inset:0;z-index:50;margin:0;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;max-width:none}
+.stage:fullscreen{aspect-ratio:auto;width:100vw;height:100vh;border-radius:0;border:0}
 .chip.contract{border-color:#6a5530;color:var(--fg)} .chip.contract b{color:var(--gold)}
 .chip.rank{color:var(--lamp)}
 .chip.seam{border-color:var(--tnt);color:#ffb3a6}
@@ -122,27 +165,30 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .parent{color:var(--muted);font-size:.92rem}
 .parent b{color:var(--fg)}
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header>
-    <div class="eyebrow">Deepvein 1.0 · a gold rush mining game</div>
-    <h1>Run a real mine on Claim 7</h1>
-    <p>Work your way down from Greenhorn to Gold Baron. Each layer down is harder and richer: water floods the tunnels below the water table, deep rock needs a steel pick, and granite needs a diamond one. The assay office posts bigger and bigger contracts. Every times table you master turns its row of the Mother Lode map to gold and raises what the assayer pays you, for good.</p>
+    <div class="eyebrow">Deepvein 2.0 · a gold rush mining game</div>
+    <h1>Find the Mother Lode on Claim 7</h1>
+    <p>Somewhere at the bottom of Claim 7 lies the Mother Lode, and McGraw's crew next door is digging for it too. Each day you get one lamp of oil: dig, haul your gold up, sell it when the price is right, and sleep. Read the quartz in the rock, pick your contracts and perks, crack geodes for crystals, and follow the old prospector's map.</p>
   </header>
 
   <div class="stage" id="mine" tabindex="0" aria-label="Mine operation game. Click to focus, then use the keyboard.">
     <canvas></canvas>
     <div class="hud">
-      <span class="chip money">Cash<b id="hMoney">$20</b></span>
+      <span class="chip day">Day<b id="hDay">1</b><i class="oil" id="hOil" title="Lamp oil"></i></span>
+      <span class="chip money">Cash<b id="hMoney">$15</b></span>
       <span class="chip" id="hSackChip">Sack<b id="hSack">0/6</b></span>
-      <span class="chip" id="hHaul" hidden>At assay<b id="hHaulN">0</b></span>
+      <span class="chip" id="hHaul" hidden>Strongbox<b id="hHaulN">0</b></span>
       <span class="chip seam" id="hSeam" hidden></span>
       <span class="spacer"></span>
       <span class="chip contract" id="hContract"></span>
       <span class="chip rank" id="hRank">Greenhorn</span>
       <span class="chip">Depth<b id="hDepth">0 ft</b></span>
     </div>
+    <div class="goal" id="hGoal"></div>
+    <button class="jbtn fsbtn" id="fsBtn" type="button">Full screen</button>
+    <button class="jbtn" id="jBtn" type="button">Journal <kbd>M</kbd></button>
     <div class="toast" hidden></div>
     <div class="prompt" hidden></div>
     <div class="toolbar" role="toolbar" aria-label="Tools">
@@ -152,6 +198,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <button class="tool" type="button" data-tool="fill" aria-pressed="false"><span class="k">4</span>Fill rock<span class="n" data-n="fill">0</span></button>
       <button class="tool" type="button" data-tool="dyn" aria-pressed="false"><span class="k">5</span>Dynamite<span class="n" data-n="dyn">0</span></button>
       <button class="tool" type="button" data-tool="survey" aria-pressed="false"><span class="k">6</span>Survey<span class="n" data-n="survey">0</span></button>
+      <button class="tool mach" type="button" data-tool="lamp" aria-pressed="false" hidden><span class="k">L</span>Lantern<span class="n" data-n="lamp">0</span></button>
       <button class="tool mach" type="button" data-tool="belt" aria-pressed="false" hidden><span class="k">7</span>Conveyor<span class="n" data-n="belt">0</span></button>
       <button class="tool mach" type="button" data-tool="rail" aria-pressed="false" hidden><span class="k">8</span>Rail<span class="n" data-n="rail">0</span></button>
       <button class="tool mach" type="button" data-tool="pump" aria-pressed="false" hidden><span class="k">9</span>Pump<span class="n" data-n="pump">0</span></button>
@@ -161,12 +208,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <button class="tool mach" type="button" data-tool="drill" aria-pressed="false" hidden><span class="k">&nbsp;</span>Drill<span class="n" data-n="drill">0</span></button>
     </div>
   </div>
-  <div class="under"><button class="ghost" id="reset" type="button">Start a new claim</button><span>Click the mine to play. Your claim saves in this browser. Town is up top: the general store on the left and the assay office on the right.</span></div>
+  <div class="under"><button class="ghost" id="reset" type="button">Start a new claim</button><span>Click the mine to play. Your claim saves in this browser. Town is up top: the general store on the left, then the assay office and the bunkhouse on the right.</span></div>
 
   <div class="below">
     <section class="box">
       <div class="eyebrow">Foreman's list</div>
-      <h2>Building the operation</h2>
+      <h2>The road to the Mother Lode</h2>
       <ol class="todo" id="todo"></ol>
       <h2 style="margin-top:18px">Your rank</h2>
       <div class="ranks" id="ranks"></div>
@@ -176,17 +223,20 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <div class="eyebrow">How Claim 7 works</div>
       <h2>Mine rules</h2>
       <div class="rules">
-        <div><h3>Gold is hidden</h3><p>Ore looks like plain rock until you uncover it. <b>Gold flecks</b> mean gold is right next door. A <b>survey kit</b> shows hidden ore in a rectangle.</p></div>
-        <div><h3>Deeper is richer</h3><p><b>Deep rock</b> (155 ft) needs a steel pick and its gold gives 2 nuggets a block. <b>Granite</b> (220 ft) needs a diamond pick and gives 3, plus gems. Dynamite breaks anything but bedrock.</p></div>
-        <div><h3>Water table</h3><p>Below about 135 ft, water seeps into your tunnels. You can't swing a pick underwater. <b>Pumps</b> drain everything around them.</p></div>
-        <div><h3>Carts or belts?</h3><p><b>Belts</b> are automatic but slow. An <b>ore cart</b> on rails carries 24 and goes fast, but you drive it. Park it next to a hoist bucket to unload.</p></div>
-        <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone and 4 in deep rock. Past that it creaks, cracks and caves in. A timber post holds it up.</p></div>
-        <div><h3>Dig, then fill</h3><p>Every block you dig gives you fill rock, up to 40. Use it to <b>build stair-steps</b>, plug holes or put a roof back.</p></div>
-        <div><h3>Gold goes out</h3><p>The sack holds 6 and slows your climbing. A <b>hoist</b> over any shaft sends ore up to the assay office. Belts can feed ore straight into its bucket.</p></div>
-        <div><h3>Machines</h3><p><b>Conveyors</b> run the way you face when you place them. Click one with the belt tool to flip it. The <b>elevator</b> rides a whole shaft. The <b>steam drill</b> bores a tunnel on its own and drops ore behind it.</p></div>
-        <div><h3>Where the math lives</h3><p><b>Assay office:</b> work out the pay for a 25% bonus. <b>Store:</b> count a bundle for a free extra. <b>Dynamite:</b> count the charges. <b>Survey:</b> work out the area.</p></div>
+        <div><h3>One lamp a day</h3><p>Your lamp burns oil while you are underground: about 5 minutes. When it runs dry it is pitch dark. <b>Sleep at the bunkhouse</b> for a full lamp and a new day. Hang <b>mine lanterns</b> to light tunnels for good.</p></div>
+        <div><h3>Read the rock</h3><p>Ore is hidden. <b>White quartz streaks</b> mean gold is near, brighter means closer, and <b>gold flecks</b> mean it is right next door. A <b>survey kit</b> shows hidden ore in a rectangle.</p></div>
+        <div><h3>Sell smart</h3><p>The gold price changes <b>every morning</b>, and the telegraph tells you which way it goes tomorrow. Lock ore in the <b>strongbox</b> and sell on a good day.</p></div>
+        <div><h3>Contracts</h3><p>Three new offers come in each morning. <b>You hold one at a time</b>, and each has a deadline. Pick the one that fits what you plan to do.</p></div>
+        <div><h3>Perks</h3><p>Every promotion lets you <b>choose 1 of 3 perks</b>. So does every times table you master. No two miners end up the same.</p></div>
+        <div><h3>Geodes</h3><p>Round grey lumps in the rock. Crack them at the assay office: each is a <b>times-table fact</b>, and a streak of right answers pays more. You choose which table to work on.</p></div>
+        <div><h3>Old caches</h3><p>Three old prospector's caches are buried on the claim. <b>Old rubble</b> deep underground points to them. Each holds a piece of the map to the <b>Mother Lode</b>.</p></div>
+        <div><h3>More than gold</h3><p><b>Copper</b> near the top, <b>silver</b> below it, <b>gems</b> in deep rock and <b>rubies</b> in granite. Fossils and old relics go in your museum collection.</p></div>
+        <div><h3>Math pays</h3><p>Work out the weigh-in at the Assay Office and you get a big cash bonus on the whole sale, and a bigger one in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
+        <div><h3>Deeper is richer</h3><p>Water seeps in below 90 ft, so you need <b>pumps</b>. Deep rock (125 ft) needs a steel pick and pays 2 nuggets a block. Granite (225 ft) needs a diamond pick and pays 3.</p></div>
+        <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone, 4 in deep rock. Past that it creaks and caves in. A timber post holds it up.</p></div>
+        <div><h3>Machines</h3><p>A <b>hoist</b> lifts ore to your strongbox. <b>Belts</b> and <b>carts</b> feed it. The <b>elevator</b> rides a whole shaft, and the <b>steam drill</b> bores tunnels by itself.</p></div>
       </div>
-      <div class="keys"><span><kbd>A</kbd><kbd>D</kbd> walk</span><span><kbd>W</kbd><kbd>S</kbd> climb or ride</span><span><kbd>Space</kbd> jump</span><span><kbd>E</kbd> use</span><span><kbd>1</kbd>–<kbd>0</kbd> tools</span><span>Pickaxe on placed gear picks it back up</span></div>
+      <div class="keys"><span><kbd>A</kbd><kbd>D</kbd> walk</span><span><kbd>W</kbd><kbd>S</kbd> climb or ride</span><span><kbd>Space</kbd> jump</span><span><kbd>E</kbd> use</span><span><kbd>1</kbd>–<kbd>0</kbd> tools</span><span><kbd>M</kbd> journal and claim map</span><span>Hold and drag to place ladders, rails, belts and fill</span><span>Pickaxe on placed gear picks it back up</span></div>
     </section>
   </div>
   <section class="box lode">
@@ -197,12 +247,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div class="legend"><span><i style="background:#2a231c;border:1px solid #3a3026"></i>Not found yet</span><span><i style="background:#5a4626"></i>Getting there</span><span><i style="background:#4a2620"></i>Tricky one</span><span><i style="background:#e0a91f"></i>Mastered</span></div></div>
       <div class="stats">
         <div class="stat"><b id="mCount">0</b><span>of 100 facts mastered. A fact turns gold after 3 right answers in a row, each in under 5 seconds.</span></div>
-        <div class="stat"><b id="mRows">0</b><span>whole tables mastered. Each one is a permanent <strong>+5%</strong> at the assay office, on every claim.</span></div>
+        <div class="stat"><b id="mRows">0</b><span>whole tables mastered. Each one earns a <strong>bonus perk</strong> on every claim. Every single fact adds 1% to what the assayer pays.</span></div>
         <p class="parent" id="mParent"></p>
-        <p class="parent">Dynamite and survey facts come from this map. The game asks more often about new and tricky facts, and only now and then about mastered ones. Sometimes you hit a "seam" and get a run of facts from a single table. This map is saved separately, so starting a new claim doesn't erase it.</p>
+        <p class="parent">Geode, dynamite and survey facts come from this map. The game asks more often about new and tricky facts, and only now and then about mastered ones. At the geode saw the player can pick one table to work on, or leave it mixed. This map is saved separately, so starting a new claim doesn't erase it.</p>
       </div>
     </div>
   </section>
-  <p class="fine">Deepvein 1.0. Art and sound are still placeholders.</p>
+  <p class="fine">Deepvein 2.0. Art and sound are still placeholders. A claim saved in Deepvein 1.0 carries over.</p>
 </div>
 
