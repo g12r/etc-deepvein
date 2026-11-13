@@ -218,7 +218,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <button class="tool mach" type="button" data-tool="drill" aria-pressed="false" hidden><span class="k">&nbsp;</span>Drill<span class="n" data-n="drill">0</span></button>
     </div>
   </div>
-  <div class="under"><button class="ghost" id="reset" type="button">Start a new claim</button><span>Click the mine to play. Your claim saves in this browser. Town is up top: the general store on the left, then the assay office and the bunkhouse on the right.</span></div>
+  <div class="under"><button class="ghost" id="reset" type="button">Start a new claim</button><span>Click the mine to play. Your claim saves in this browser. Town is up top: the general store on the left, then the ore exchange and the bunkhouse on the right.</span></div>
 
   <div class="below">
     <section class="box">
@@ -238,11 +238,11 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div><h3>Sell smart</h3><p>The gold price changes <b>every morning</b>, and the telegraph tells you which way it goes tomorrow. Lock ore in the <b>strongbox</b> and sell on a good day.</p></div>
         <div><h3>Contracts</h3><p>Three new offers come in each morning. <b>You hold one at a time</b>, and each has a deadline. Pick the one that fits what you plan to do.</p></div>
         <div><h3>Perks</h3><p>Every promotion lets you <b>choose 1 of 3 perks</b>. So does every times table you master. No two miners end up the same.</p></div>
-        <div><h3>Geodes</h3><p>Round grey lumps in the rock. Crack them at the assay office: each is a <b>times-table fact</b>, and a streak of right answers pays more. You choose which table to work on.</p></div>
+        <div><h3>Geodes</h3><p>Round grey lumps in the rock. Crack them at the ore exchange: each is a <b>times-table fact</b>, and a streak of right answers pays more. You choose which table to work on.</p></div>
         <div><h3>Old caches</h3><p>Three old prospector's caches are buried on the claim. <b>Old rubble</b> deep underground points to them. Each holds a piece of the map to the <b>Mother Lode</b>.</p></div>
         <div><h3>More than gold</h3><p><b>Copper</b> near the top, <b>silver</b> below it, <b>gems</b> in deep rock and <b>rubies</b> in granite. Fossils and old relics go in your museum collection.</p></div>
         <div><h3>Pip the pack rat</h3><p>Out of ladders or timber down a shaft? Press <b>R</b> and Pip runs some down from the store. It costs <b>double</b>, and what you cannot pay goes on your tab until your next sale.</p></div>
-        <div><h3>Math pays</h3><p>Work out the weigh-in at the Assay Office and you get <b>50% more</b> for the whole sale, or <b>75% more</b> in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
+        <div><h3>Math pays</h3><p>Work out the weigh-in at the Ore Exchange and you get <b>50% more</b> for the whole sale, or <b>75% more</b> in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
         <div><h3>Deeper is richer</h3><p>Water seeps in below 90 ft, so you need <b>pumps</b>. Deep rock (125 ft) needs a steel pick and pays 2 nuggets a block. Granite (225 ft) needs a diamond pick and pays 3.</p></div>
         <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone, 4 in deep rock. Past that it creaks and caves in. A timber post holds it up.</p></div>
         <div><h3>Machines</h3><p>A <b>hoist</b> lifts ore to your strongbox. <b>Belts</b> and <b>carts</b> feed it. The <b>elevator</b> rides a whole shaft, and the <b>steam drill</b> bores tunnels by itself.</p></div>
@@ -363,8 +363,8 @@ const isHid=t=>isOre(t)||t===GEODE||t===CHEST||t===LODE||t===FOSSIL;
 const ORE={[COPPER]:{k:'copper',n:'copper',one:'copper',c:'#e08a45',val:2,tip:'Copper! It only pays $2 a piece, but there is plenty of it near the top.'},
   [SILVER]:{k:'silver',n:'silver',one:'silver',c:'#e3e9f0',val:4,tip:'Silver! The assayer pays $4 a piece.'},
   [GOLD]:{k:'gold',n:'gold',one:'gold',c:'#ffd25e'},
-  [GEM]:{k:'gem',n:'gems',one:'gem',c:'#6be3e8',val:15,tip:'A gem! Worth $15 at the Assay Office.'},
-  [RUBY]:{k:'ruby',n:'rubies',one:'ruby',c:'#ff6d88',val:30,tip:'A ruby! Worth $30 at the Assay Office.'}};
+  [GEM]:{k:'gem',n:'gems',one:'gem',c:'#6be3e8',val:15,tip:'A gem! Worth $15 at the Ore Exchange.'},
+  [RUBY]:{k:'ruby',n:'rubies',one:'ruby',c:'#ff6d88',val:30,tip:'A ruby! Worth $30 at the Ore Exchange.'}};
 const OKEYS=['copper','silver','gold','gem','ruby'],KT={copper:COPPER,silver:SILVER,gold:GOLD,gem:GEM,ruby:RUBY};
 const valOf=k=>k==='gold'?G.price:ORE[KT[k]].val;
 const yieldOf=(t,y)=>isMetal(t)?yieldAt(y):1;
@@ -542,8 +542,8 @@ function migrate(){const r=rankIdx();
 function newHoist(x){return {x,y:SURF[x]-1.3,state:'down',load:bag(),idle:0};}
 function start(fromSave){migrated=false;grown=false;if(!(fromSave&&load()))fresh();resetRuntime();calcProx();proxDirty=false;closeOverlay();setTool(G.tool||'pick');hud();todo();renderRanks();renderMap();
   if(migrated||grown){save();setTimeout(()=>welcome(migrated?true:'grow'),500);}else if(!G.seen.intro){G.seen.intro=1;setTimeout(()=>welcome(false),500);}}
-function welcome(mig){const li=mig==='grow'?['Your tunnels, gear, cash, rank and perks are all still here.','<b>The claim is much bigger now.</b> It runs far to the east and goes down to 365 ft. The Mother Lode turned out to lie deeper than the old maps said.','<b>There is more than gold.</b> Look for copper and silver, rubies down in the granite, and fossils for your museum collection (see your journal).','<b>Math pays more.</b> Work out the weigh-in at the Assay Office for 50% more, or 75% more if you are fast.','<b>Dynamite is a shaped charge now.</b> It bores 2 blocks wide, straight away from you.']:mig?['Your tunnels, gear, cash and rank are all still here.','<b>Days and lamp oil:</b> your lamp burns about 5 minutes underground. Sleep at the new Bunkhouse (far right) for a full lamp and a new day.','<b>Gold prices change every morning.</b> Lock ore in the strongbox and sell on a good day.','<b>Contracts:</b> pick one of three at the Assay Office each day.','<b>Geodes</b> are hidden in the rock. Crack them at the Assay Office for crystals.','<b>Perks:</b> you choose one for every rank you have earned, and one for every times table you master.','<b>The Mother Lode</b> is buried at the bottom of the claim. Old caches hold the map. Press M for your journal.']
-    :['Somewhere at the bottom of this claim lies the <b>Mother Lode</b>. McGraw\'s crew next door is digging for it too.','Your lamp holds <b>one day of oil</b>. Dig, sell your gold at the Assay Office, then sleep at the Bunkhouse.','<b>White quartz streaks</b> in the rock point toward gold. Brighter means closer.','You start with <b>8 ladders and 2 timber posts</b>. Press 2 for ladders, and hold the mouse to dig.'];
+function welcome(mig){const li=mig==='grow'?['Your tunnels, gear, cash, rank and perks are all still here.','<b>The claim is much bigger now.</b> It runs far to the east and goes down to 365 ft. The Mother Lode turned out to lie deeper than the old maps said.','<b>There is more than gold.</b> Look for copper and silver, rubies down in the granite, and fossils for your museum collection (see your journal).','<b>Math pays more.</b> Work out the weigh-in at the Ore Exchange for 50% more, or 75% more if you are fast.','<b>Dynamite is a shaped charge now.</b> It bores 2 blocks wide, straight away from you.']:mig?['Your tunnels, gear, cash and rank are all still here.','<b>Days and lamp oil:</b> your lamp burns about 5 minutes underground. Sleep at the new Bunkhouse (far right) for a full lamp and a new day.','<b>Gold prices change every morning.</b> Lock ore in the strongbox and sell on a good day.','<b>Contracts:</b> pick one of three at the Ore Exchange each day.','<b>Geodes</b> are hidden in the rock. Crack them at the Ore Exchange for crystals.','<b>Perks:</b> you choose one for every rank you have earned, and one for every times table you master.','<b>The Mother Lode</b> is buried at the bottom of the claim. Old caches hold the map. Press M for your journal.']
+    :['Somewhere at the bottom of this claim lies the <b>Mother Lode</b>. McGraw\'s crew next door is digging for it too.','Your lamp holds <b>one day of oil</b>. Dig, sell your gold at the Ore Exchange, then sleep at the Bunkhouse.','<b>White quartz streaks</b> in the rock point toward gold. Brighter means closer.','You start with <b>8 ladders and 2 timber posts</b>. Press 2 for ladders, and hold the mouse to dig.'];
   const ov=overlay(`<div class="eyebrow">${mig?'Your claim came with you':'Day 1 on Claim 7'}</div><h3>${mig==='grow'?'Claim 7 just got bigger':mig?'Welcome to Deepvein 2.0':'Find the Mother Lode'}</h3><ul class="news">${li.map(t=>'<li>'+t+'</li>').join('')}</ul><div class="foot"><button class="btn" data-close>${mig?'Back to work':'Start digging'}</button></div>`);ov.querySelector('[data-close]').addEventListener('click',closeOverlay);}
 
 /* ---------- UI ---------- */
@@ -573,10 +573,10 @@ stage.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',e=>{e.stop
 stage.querySelector('.toolbar').addEventListener('pointerdown',e=>e.stopPropagation());
 const TODO=[['deep','Dig a shaft down 40 feet. Hold the mouse to dig. Place ladders (2) so you can climb back out.','Dig down 40 ft with ladders'],
   ['mined','Follow the white quartz streaks in the rock. Gold flecks mean gold is right next door.','Follow quartz streaks to gold'],
-  ['sold','Carry your gold up to the Assay Office and press E to sell it.','Sell gold at the Assay Office'],
+  ['sold','Carry your gold up to the Ore Exchange and press E to sell it.','Sell gold at the Ore Exchange'],
   ['slept','Before your lamp oil runs out, go to the Bunkhouse and sleep. That starts a new day.','Sleep at the Bunkhouse'],
-  ['contract','Pick a contract from the board in the Assay Office.','Pick a contract'],
-  ['geode','Dig out a geode (a round grey lump) and crack it open at the Assay Office.','Crack a geode'],
+  ['contract','Pick a contract from the board in the Ore Exchange.','Pick a contract'],
+  ['geode','Dig out a geode (a round grey lump) and crack it open at the Ore Exchange.','Crack a geode'],
   ['bought','Spend some gold at the General Store. Check the deal of the day.','Shop at the General Store'],
   ['timber','Hold up a long tunnel roof with a timber post (3).','Timber a tunnel roof'],
   ['rank1','Earn $120 in total to become a Prospector. Every promotion lets you choose a perk.','Earn $120 to be a Prospector'],
@@ -593,7 +593,7 @@ function earn(cash){G.money+=cash;if(G.debt>0){const pay=Math.min(G.money,G.debt
   if(after>before){G.perkPicks+=after-before;if(after===RANKS.length-1)award('baron');setTimeout(()=>{toast(after===RANKS.length-1?`You are now the GOLD BARON of Claim 7!`:`Promoted to ${RANKS[after][0]}! New gear is for sale, and you get to choose a perk.`,5200);SFX.gem();SFX.coins();for(let i=0;i<80;i++)parts.push({x:p.x,y:p.y-2,vx:(Math.random()-.5)*14,vy:-Math.random()*12,life:1.4,c:['#ffd25e','#6be3e8','#ff8a5c','#fff3b0'][i%4],s:.18,fire:true});},700);perkAt=time+2.5;}
   renderRanks();hud();if(G.contract&&G.contract.k==='bigday')progress('bigday',G.today.earned);}
 function progress(kind,amt){const c=G.contract;if(!c||c.k!==kind)return;const before=c.prog;c.prog=(kind==='depth'||kind==='bigday')?Math.max(c.prog,amt):c.prog+amt;if(c.prog===before)return;
-  if(c.prog>=c.target){const r=c.reward,it=c.item;G.contract=null;G.done=(G.done||0)+1;if(it)G.pack[it.id]+=it.n;setTimeout(()=>{toast(`Contract done! +$${r}${it?` and ${it.n} ${it.name}`:''}. Pick a new one at the Assay Office.`,4600);SFX.coins();earn(r);},400);}hud();}
+  if(c.prog>=c.target){const r=c.reward,it=c.item;G.contract=null;G.done=(G.done||0)+1;if(it)G.pack[it.id]+=it.n;setTimeout(()=>{toast(`Contract done! +$${r}${it?` and ${it.n} ${it.name}`:''}. Pick a new one at the Ore Exchange.`,4600);SFX.coins();earn(r);},400);}hud();}
 
 let ovEl=null;
 function closeOverlay(){if(ovEl){ovEl.remove();ovEl=null;stage.focus({preventScroll:true});}}
@@ -731,13 +731,13 @@ function newOffers(){const L=(G.done||0)+rankIdx()*2,R=Math.random;const mk={
     if(R()<.35)o.item=[{id:'dyn',n:2,name:'dynamite'},{id:'survey',n:2,name:'survey kits'},{id:'timber',n:3,name:'timber'},{id:'flask',n:2,name:'oil flasks'}][Math.floor(R()*4)];out.push(o);}
   return out;}
 
-/* the assay office: sell, crack geodes, pick contracts */
+/* the ore exchange: sell, crack geodes, pick contracts */
 let assayTab='sell',geoRow=0,lastB=0;
 function pickRow(a){const now=Date.now(),cand=[];let tot=0;for(let b=1;b<=10;b++){if(b===lastB)continue;const f=FS.f[fk(a,b)];const w=!f||!f.n?3:f.m?.5:(f.bad&&now-f.bad<6e5?7:4-Math.min(2,f.st));cand.push([b,w]);tot+=w;}
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[1];if(r<=0){pick=c;break;}}lastB=pick[0];return [a,pick[0]];}
 function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   const tabs=[['sell','Sell ore'],['geode',`Crack geodes${gd?` (${gd})`:''}`],['board',`Contracts${G.contract?'':' (new!)'}`]].map(([k,l])=>`<button class="tab" type="button" data-tab="${k}" aria-pressed="${assayTab===k}">${l}</button>`).join('');
-  const ov=overlay(`<div class="cashhead"><h3>Assay Office</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+  const ov=overlay(`<div class="cashhead"><h3>Ore Exchange</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);ov.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openAssay(b.dataset.tab)));
   showCash();({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
 function showCash(){document.querySelectorAll('[data-cash]').forEach(el=>{el.innerHTML='$'+G.money+'<small>'+(G.debt?'you owe $'+G.debt:'your cash')+'</small>';});}
@@ -839,7 +839,7 @@ function drawClaimMap(c){const s=7,x=c.getContext('2d');c.width=COLS*s;c.height=
   pumps.forEach(m=>{x.fillStyle='#3fae6a';x.fillRect(m.x*s+1,m.y*s+1,s-2,s-2);});drills.forEach(d=>{x.fillStyle='#c0452f';x.fillRect(d.x*s+1,d.y*s+1,s-2,s-2);});
   carts.forEach(k=>{x.fillStyle='#6b6f75';x.fillRect(Math.floor(k.x)*s,k.y*s+3,s,s-3);});lamps.forEach(l=>{x.fillStyle='#ffe08a';x.fillRect(l.x*s+2,l.y*s+2,3,3);});
   x.font='bold 13px sans-serif';x.textBaseline='middle';
-  [[STORE[0],5,'STORE','#8a5a2b'],[ASSAY[0],5,'ASSAY','#6d4a2e'],[BUNK[0],4.2,'BUNK','#7a5a3a']].forEach(([bx,w,l,cc])=>{x.fillStyle=cc;x.fillRect(bx*s,(SURF[Math.floor(bx)]-3)*s,w*s,3*s);x.fillStyle='#f0e6d6';x.fillText(l,bx*s+2,(SURF[Math.floor(bx)]-1.5)*s);});
+  [[STORE[0],5,'STORE','#8a5a2b'],[ASSAY[0],5,'ORE EX.','#6d4a2e'],[BUNK[0],4.2,'BUNK','#7a5a3a']].forEach(([bx,w,l,cc])=>{x.fillStyle=cc;x.fillRect(bx*s,(SURF[Math.floor(bx)]-3)*s,w*s,3*s);x.fillStyle='#f0e6d6';x.fillText(l,bx*s+2,(SURF[Math.floor(bx)]-1.5)*s);});
   [[WT+1,'Water table'],[DEEPROW+1,'Deep rock: steel pick'],[GRANROW+1,'Granite: diamond pick']].forEach(([r,l])=>{x.strokeStyle='rgba(255,255,255,.35)';x.setLineDash([4,4]);x.beginPath();x.moveTo(0,r*s);x.lineTo(COLS*s,r*s);x.stroke();x.setLineDash([]);
     x.fillStyle='rgba(0,0,0,.55)';const tx=`${l} \u00b7 ${(r-10)*FT} ft`;x.fillRect(2,r*s-17,x.measureText(tx).width+8,16);x.fillStyle='#f0e6d6';x.fillText(tx,6,r*s-8);});
   const band=lodeBand();if(band){x.fillStyle='rgba(255,210,94,.28)';x.fillRect(band[0]*s,(ROWS-10)*s,(band[1]-band[0]+1)*s,9*s);x.strokeStyle='#ffd25e';x.strokeRect(band[0]*s+.5,(ROWS-10)*s+.5,(band[1]-band[0]+1)*s-1,9*s-1);x.fillStyle='#ffd25e';x.fillText('Mother Lode?',band[0]*s+3,(ROWS-10)*s-6);}
@@ -876,7 +876,7 @@ function addOre(t,n,x,y){const o=ORE[t];
   const room=Math.max(0,CAP()-load_()),take=Math.min(n,room);G.today.gold+=n;if(t===GOLD)award('gold1');
   if(take){G.sack[o.k]+=take;(isMetal(t)?SFX.gold:SFX.gem)();float(x,y,`+${take} ${take===1?o.one:o.n}${n>1?' (rich vein!)':''}`,o.c);flag('mined');hud();if(o.tip)once('ore_'+o.k,o.tip);}
   for(let i=take;i<n;i++)items.push({x:x+(i-take)*.2,y,vy:-3,vx:0,t});
-  if(take<n)once('full','Your sack is full! Take it up to the assay office, send it up a hoist, or buy a bigger sack.',true);
+  if(take<n)once('full','Your sack is full! Take it up to the ore exchange, send it up a hoist, or buy a bigger sack.',true);
   if(n>1)once('rich','Deep ore is richer. Every block gives more than one piece!');}
 function gotFossil(x,y){const left=FINDS.filter(f=>!G.finds[f[0]]);let cash=20;
   if(left.length){const pool=left.slice(0,Math.min(left.length,4+tierAt(y)*3)),f=pool[Math.floor(Math.random()*pool.length)];G.finds[f[0]]=G.day;cash=f[1];const n=Object.keys(G.finds).length;
@@ -888,7 +888,7 @@ function tooHard(h,lode){if(lode){if(!once('hardL','Clank! The Mother Lode is as
   else if(h>=4){if(!once('hard4','Clank! Granite needs a diamond-tipped pick (Foreman rank). Dynamite works too.',true))toast('Too hard for your pick.',1200);}
   else if(!once('hard3','Clank! Deep rock is too hard for an iron pick. Get a steel pick (Prospector rank), or use dynamite.',true))toast('Too hard for your pick.',1200);}
 function headWet(){return water(Math.floor(p.x),Math.floor(p.y-1.35))>.6;}
-function gotGeode(tx,ty){G.geodes[tierAt(ty)]++;SFX.gem();float(tx+.5,ty+.5,'+1 geode','#c9a8f0');hud();once('geode1','A geode! Take it to the Assay Office and crack it open to see what is inside.');}
+function gotGeode(tx,ty){G.geodes[tierAt(ty)]++;SFX.gem();float(tx+.5,ty+.5,'+1 geode','#c9a8f0');hud();once('geode1','A geode! Take it to the Ore Exchange and crack it open to see what is inside.');}
 function dig(tx,ty){const t=get(tx,ty);if(t===AIR)return;if(t===BED){SFX.thud();once('bed','That is bedrock. Nothing gets through it.');return;}
   const wetK=headWet()&&!perk('boots')?.6:1;if(wetK<1)once('wetdig','Digging is slower with your head underwater. A steam pump (Prospector rank) drains it, and fill rock seals where it seeps.',true);
   const hard=hardOf(t,ty);p.swing=1;const shown=isHid(t)&&!exposed(tx,ty)&&!KNOWN[idx(tx,ty)]?host(ty):t;
@@ -1130,7 +1130,7 @@ function zone(){
   if(p.riding)return ['hop','Hop off the cart (A and D to roll)'];
   const onTop=p.ground&&p.y<=SURF[clamp(Math.floor(p.x),0,COLS-1)]+.05;
   if(onTop&&p.x>=STORE[0]&&p.x<=STORE[1])return ['store','Open the General Store'];
-  if(onTop&&p.x>=ASSAY[0]&&p.x<=ASSAY[1])return ['assay','Open the Assay Office'];
+  if(onTop&&p.x>=ASSAY[0]&&p.x<=ASSAY[1])return ['assay','Open the Ore Exchange'];
   if(onTop&&p.x>=BUNK[0]&&p.x<=BUNK[1])return ['bunk','Sleep until morning'];
   if(nearBucket())return ['bucket','Load the bucket and send it up'];
   if(p.onLift)return ['ride','Hold W or S to ride the elevator'];
@@ -1262,7 +1262,7 @@ function update(dt){
     else if(H.state==='wait'){if(Math.abs(H.y-bottom)>.01)H.y+=Math.sign(bottom-H.y)*Math.min(Math.abs(bottom-H.y),5*dt);
       if(cnt(H.load)){H.idle+=dt;if(H.idle>2.2)H.state='up';}}
     else if(H.state==='up'){H.y-=5*dt;if(H.y<=top){H.y=top;const n=cnt(H.load);pour(H.load,G.stock);
-      if(n){SFX.coins();float(H.x+.5,top-.5,`${n} ore off to the assay office`,'#ffd25e');flag('hoist');}hud();H.state='down';}}});
+      if(n){SFX.coins();float(H.x+.5,top-.5,`${n} ore off to the ore exchange`,'#ffd25e');flag('hoist');}hud();H.state='down';}}});
   for(let i=parts.length-1;i>=0;i--){const q=parts[i];q.vy+=(q.fire?4:30)*dt;const nx=q.x+q.vx*dt,ny=q.y+q.vy*dt;
     if(!q.fire&&solid(Math.floor(nx),Math.floor(ny))){if(solid(Math.floor(q.x),Math.floor(ny))){q.vy*=-.3;q.vx*=.7;}else q.vx*=-.4;}else{q.x=nx;q.y=ny;}
     q.life-=dt;if(q.life<=0)parts.splice(i,1);}
@@ -1386,7 +1386,7 @@ function draw(){
   g.save();g.translate(offX,offY);
   const x0=Math.max(0,Math.floor(cam.x)-1),x1=Math.min(COLS-1,Math.ceil(cam.x+VIEW)+1),y0=Math.max(0,Math.floor(cam.y)-1),y1=Math.min(ROWS-1,Math.ceil(cam.y+Hd/P)+1);
   building(STORE[0],5,'GENERAL STORE','#8a5a2b','#e8c27a','store');
-  building(ASSAY[0],5,'ASSAY OFFICE','#6d4a2e','#cfd6d8','assay');
+  building(ASSAY[0],5,'ORE EXCHANGE','#6d4a2e','#cfd6d8','assay');
   building(BUNK[0],4.2,'BUNKHOUSE','#7a5a3a','#d9c9a0','bunk');
   const glow=[];let fleckNear=false,quartzNear=false;const qLim=3+perk('eye');const e=Math.max(2,P*.07),e1=Math.max(1,P*.03);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=idx(x,y),t=W[i],X=x*P,Y=y*P,hh=hash(x,y);

@@ -1,4 +1,4 @@
-// The Assay Office dialog shows the player's cash, large, in its top right corner, and it updates after a sale.
+// The Ore Exchange dialog shows the player's cash, large, in its top right corner, and it updates after a sale.
 const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1300,height:900}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('file://'+__dirname+'/../deepvein.html');await p.waitForTimeout(1000);await p.click('.ov [data-close]');

@@ -34,7 +34,7 @@ nothing to install.
 - **Get out of trouble.** Out of ladders at the bottom of a shaft? Pip the pack
   rat runs some down from the store, at double price, on credit.
 
-![The town on the surface: the general store, with the assay office beyond](docs/town.png)
+![The town on the surface: the general store, with the ore exchange beyond](docs/town.png)
 
 ## Where the math lives
 
@@ -65,7 +65,7 @@ Skipping the math is always allowed. It just pays less.
 | `Space` | Jump |
 | Mouse | Hold to dig. Click to place the selected tool; drag to place ladders, rails, belts and fill |
 | `1`–`0`, `L` | Pick a tool |
-| `E` | Use what you are standing at: store, assay office, bunkhouse, hoist, cart |
+| `E` | Use what you are standing at: store, ore exchange, bunkhouse, hoist, cart |
 | `R` | Call Pip the pack rat (underground) |
 | `M` | Journal: claim map, fact map, perks, trophies, museum |
 
