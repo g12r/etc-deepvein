@@ -1363,7 +1363,7 @@ function draw(){
   offX=Math.round(-cam.x*P+sx);offY=Math.round(-cam.y*P+sy);
   g.imageSmoothingEnabled=false;
   // ----- sky: the day runs from dawn to night as the lamp oil burns down -----
-  const fT=G.carbide?.34:.07+.93*clamp(1-G.oil/Math.max(1,G.shift*(1+.35*perk('lamp'))),0,1);dayF+=(fT-dayF)*.04;const sk=skyAt(dayF);dayL=sk.L;nightK=clamp((dayF-.68)/.22,0,1);
+  const fT=G.carbide?.34:.07+.93*clamp(1-G.oil/100,0,1);dayF+=(fT-dayF)*.04;const sk=skyAt(dayF);dayL=sk.L;nightK=clamp((dayF-.68)/.22,0,1);
   const hy=10*P+offY;
   const sky=g.createLinearGradient(0,hy-10*P,0,hy+P);sky.addColorStop(0,sk.top);sky.addColorStop(.62,sk.mid);sky.addColorStop(1,sk.hor);
   g.fillStyle=sky;g.fillRect(0,0,Wd,Hd);
