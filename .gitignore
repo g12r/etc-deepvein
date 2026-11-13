@@ -1,3 +1,4 @@
 *.png
+!docs/*.png
 __pycache__/
 node_modules/
