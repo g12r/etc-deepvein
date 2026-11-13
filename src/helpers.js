@@ -1,7 +1,7 @@
 <script>
 /* ---------- art + sound helpers ---------- */
-const PAL={grass:'#5f9e3a',dirt:'#7a5233',stone:'#77716a',deep:'#4c4756',gold:'#77716a',gem:'#4c4756',bed:'#2b2729',rubble:'#6b5a49'};
-const PCOL={grass:['#5f9e3a','#7a5233'],dirt:['#7a5233','#5e3e26'],stone:['#77716a','#5a5550'],deep:['#4c4756','#36323d'],gold:['#ffd34d','#77716a','#fff3b0'],gem:['#6be3e8','#4c4756','#dcffff'],bed:['#2b2729'],rubble:['#6b5a49','#8a7a68','#4f4236']};
+const PAL={grass:'#8f9244',dirt:'#80522f',stone:'#7a5a42',deep:'#5c4850',gold:'#7a5a42',gem:'#5c4850',bed:'#2b2424',rubble:'#7d6650'};
+const PCOL={grass:['#8f9244','#80522f'],dirt:['#80522f','#5e3e26'],stone:['#7a5a42','#553c2b'],deep:['#5c4850','#3c2e34'],gold:['#ffd34d','#7a5a42','#fff3b0'],gem:['#3fd0e6','#5c4850','#dcffff'],bed:['#2b2729'],rubble:['#6b5a49','#8a7a68','#4f4236']};
 function seeded(s){return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
 function shade(hex,j){const n=parseInt(hex.slice(1),16);const f=1+j;const c=v=>Math.max(0,Math.min(255,Math.round(v*f)));return `rgb(${c(n>>16)},${c((n>>8)&255)},${c(n&255)})`;}
 function tileCanvas(type,variant){

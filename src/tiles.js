@@ -29,23 +29,29 @@ function oreOverlay(type,variant){const c=document.createElement('canvas');c.wid
     g.fillStyle=C[4];g.fillRect(x-s*.42,y-s*.46,Math.max(1,s*.24),1);});
   for(let k=0;k<5;k++){const x=4+r()*24,y=5+r()*23;g.fillStyle=C[2];g.fillRect(x,y,1.4,1.4);g.fillStyle=C[4];g.fillRect(x,y,.7,.7);}
   return c;}
-// rock palettes: [stone face, crevice between stones]
-const ROCKPAL={dirt:['#80522f','#3b2413'],stone:['#7a5a42','#2b1c13'],deep:['#5c4850','#20171c'],granite:['#514750','#19151a'],bed:['#2b2424','#0d0a0a'],rubble:['#7d6650','#231912']};
+// rock palettes: [boulder face, the packed ground between boulders]
+const ROCKPAL={dirt:['#8a5c36','#6f4628'],stone:['#86644a','#4f392a'],deep:['#66515a','#3a2d33'],granite:['#5a4f59','#2e272e'],bed:['#2b2424','#141010'],rubble:['#8a705a','#2a1e15']};
 function tileCanvas(type,variant){
   const c=document.createElement('canvas');c.width=c.height=TS;const g=c.getContext('2d');const seed=variant*977+type.length*131+type.charCodeAt(0)*17+3;
-  const rock=type==='gold'?'stone':type==='gem'?'deep':type==='grass'?'dirt':type;const [face,crev]=ROCKPAL[rock]||ROCKPAL.stone;const r=seeded(seed);
-  g.fillStyle=crev;g.fillRect(0,0,TS,TS);
-  // chunky fitted stones: a jittered grid of lumps, each shaded like a boulder lit from the top left
-  const soft=rock==='dirt',lay=rock==='rubble'?[3,3]:soft?[[3,2],[2,3],[3,3]][variant%3]:[[2,2],[2,2],[3,2],[2,3],[2,2],[3,2]][variant%6],nx=lay[0],ny=lay[1],cw=TS/nx,ch=TS/ny;
-  const merge=!soft&&rock!=='rubble'&&variant%3===1; // one double-width boulder
-  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){if(merge&&j===0&&i===1)continue;const wide=merge&&j===0&&i===0;
-    const w=(wide?cw*2:cw),cx=i*cw+w/2+(r()-.5)*1.6,cy=j*ch+ch/2+(r()-.5)*1.6,rx=w/2-(soft?.5:.9),ry=ch/2-(soft?.5:.9),tone=(r()-.5)*(soft?.16:.26);
-    const gr=g.createRadialGradient(cx-rx*.35,cy-ry*.45,.5,cx,cy,Math.max(rx,ry)*1.15);gr.addColorStop(0,shade(face,tone+(soft?.2:.34)));gr.addColorStop(.5,shade(face,tone));gr.addColorStop(1,shade(face,tone-(soft?.26:.42)));
-    g.fillStyle=gr;lump(g,r,cx,cy,rx,ry,soft?9:8,soft?.08:.11);g.fill();
-    if(!soft){g.strokeStyle='rgba(255,226,180,.16)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,Math.min(rx,ry)*.72,3.5,4.9);g.stroke();
-      if(r()<.5){g.strokeStyle='rgba(0,0,0,.3)';g.beginPath();const x0=cx-rx*.4+r()*rx*.5,y0=cy-ry*.1+r()*ry*.4;g.moveTo(x0,y0);g.lineTo(x0+2+r()*3,y0+1+r()*2);g.lineTo(x0+4+r()*4,y0+r()*2);g.stroke();}}
-    for(let k=0;k<(soft?5:3);k++){g.fillStyle=k%2?'rgba(0,0,0,.2)':'rgba(255,225,180,.14)';g.fillRect(cx+(r()-.5)*rx*1.3,cy+(r()-.5)*ry*1.3,1,1);}}
-  if(rock==='granite')for(let k=0;k<40;k++){const x=Math.floor(r()*32),y=Math.floor(r()*32),t=r();g.fillStyle=t<.45?'rgba(214,196,190,.55)':t<.75?'rgba(20,14,18,.5)':'rgba(170,128,150,.5)';g.fillRect(x,y,1,1);}
+  const rock=type==='gold'?'stone':type==='gem'?'deep':type==='grass'?'dirt':type;const [face,ground]=ROCKPAL[rock]||ROCKPAL.stone;const ts=rock.length*131+rock.charCodeAt(0)*17;
+  // packed ground: every variant of a rock shares the same edges, so neighbouring tiles join without a visible grid
+  const r=seeded(seed),n1=vnoise(seed+5,4),n2=vnoise(seed+91,8),c1=vnoise(ts+5,4),c2=vnoise(ts+91,8);
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){const e=Math.min(x,31-x,y,31-y),w0=Math.min(1,e/7),w=w0*w0*(3-2*w0);
+    const a1=c1(x/8,y/8),a2=c2(x/4,y/4),v1=a1+(n1(x/8,y/8)-a1)*w,v2=a2+(n2(x/4,y/4)-a2)*w;let sv=(v1-.5)*.3+(v2-.5)*.2+(r()-.5)*.07;
+    if(rock==='dirt')sv+=Math.sin(y*.589+v1*4)*.05;
+    g.fillStyle=shade(ground,sv);g.fillRect(x,y,1,1);}
+  // boulders bedded in it, lit from the top left, each with a soft shadow underneath
+  const soft=rock==='dirt',count=rock==='rubble'?7:rock==='bed'?3:soft?(variant%3===0?1:variant%3===1?2:0):3+variant%2,placed=[];
+  for(let k=0,tries=0;k<count&&tries<60;tries++){const big=!soft&&k===0,rx=soft?2.5+r()*2.5:big?7+r()*2.5:3.5+r()*3.5,ry=rx*(.62+r()*.25),cx=rx+2+r()*(TS-2*rx-4),cy=ry+2+r()*(TS-2*ry-4);
+    if(placed.some(q=>Math.abs(q[0]-cx)<(q[2]+rx)*.82&&Math.abs(q[1]-cy)<(q[3]+ry)*.82))continue;placed.push([cx,cy,rx,ry]);k++;
+    const sd=Math.floor(cx*13+cy*7+k),tone=(r()-.5)*.22;
+    g.fillStyle='rgba(0,0,0,.38)';lump(g,seeded(sd),cx+.8,cy+1.4,rx+.6,ry+.6,7,.16);g.fill();
+    const gr=g.createLinearGradient(cx-rx,cy-ry,cx+rx*.6,cy+ry);gr.addColorStop(0,shade(face,tone+.3));gr.addColorStop(.45,shade(face,tone));gr.addColorStop(1,shade(face,tone-.36));
+    g.fillStyle=gr;lump(g,seeded(sd),cx,cy,rx,ry,7,.16);g.fill();
+    g.fillStyle='rgba(255,230,190,.2)';lump(g,seeded(sd+3),cx-rx*.28,cy-ry*.36,rx*.5,ry*.32,6,.2);g.fill();
+    if(rx>5){g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=1;g.beginPath();const x0=cx-rx*.3+r()*rx*.3,y0=cy+r()*ry*.3;g.moveTo(x0,y0);g.lineTo(x0+2+r()*3,y0+1+r()*2);g.lineTo(x0+4+r()*3,y0+r()*2);g.stroke();}}
+  for(let k=0;k<14;k++){g.fillStyle=k%2?'rgba(0,0,0,.22)':'rgba(255,225,180,.16)';g.fillRect(Math.floor(r()*32),Math.floor(r()*32),1,1);}
+  if(rock==='granite')for(let k=0;k<16;k++){const x=Math.floor(r()*32),y=Math.floor(r()*32),t=r();g.fillStyle=t<.4?'rgba(214,196,190,.3)':t<.75?'rgba(20,14,18,.4)':'rgba(170,128,150,.32)';g.fillRect(x,y,1,1);}
   if(rock==='deep'){g.strokeStyle='rgba(170,150,205,.14)';g.lineWidth=1;g.beginPath();let x=0,y=r()*32;g.moveTo(x,y);for(let k=0;k<5;k++){x+=7;y+=(r()-.5)*9;g.lineTo(x,y);}g.stroke();}
   if(type==='grass'){ // sun-dried turf over the top of the bank
     const n2=vnoise(seed+91,8);for(let x=0;x<TS;x++){const h=5+Math.round(n2(x/3,variant*3)*4);for(let y=0;y<h;y++){const t=y/h;g.fillStyle=shade(t<.3?'#b9b05a':t<.7?'#8f9244':'#6a6f33',(r()-.5)*.16);g.fillRect(x,y,1,1);}g.fillStyle='#3d3a1a';g.fillRect(x,h,1,1);}
