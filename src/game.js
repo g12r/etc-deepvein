@@ -188,7 +188,7 @@ function load(rawIn){try{let raw=rawIn||localStorage.getItem(SAVE_KEY),src=5;if(
   p={x:d.p.x,y:d.p.y,face:d.p.face||1};lamps=d.lamps||[];
   hoists=d.hoists.map(h=>newHoist(h.x));lifts=d.lifts.map(l=>({x:l.x,anchor:l.anchor,y:l.y,target:null}));drills=d.drills.map(x=>({...x,t:0}));pumps=d.pumps||[];
   carts=(d.carts||[]).map(c=>({...c,load:Object.assign(bag(),c.load),vx:0}));items=d.items.map(i=>({...i,vy:0,vx:0}));
-  G.sack=Object.assign(bag(),G.sack);G.stock=Object.assign(bag(),G.stock);G.finds=G.finds||{};G.debt=G.debt||0;(G.pending||[]).forEach(c=>{G.pack[c.id]+=c.n;});G.pending=[];
+  G.sack=Object.assign(bag(),G.sack);G.stock=Object.assign(bag(),G.stock);G.finds=G.finds||{};G.debt=G.debt||0;(G.pending||[]).forEach(c=>{if(c.id==='oil')G.oil=Math.min(100,G.oil+c.n);else G.pack[c.id]+=c.n;});G.pending=[];
   if(src===3||!G.v)migrate();else if(!big)seedExtras(true);
   G.v=3;hpAll();return true;}catch(e){return false;}}
 // A claim saved by Deepvein 1.0 keeps everything it had and gets the new systems added on top.
@@ -260,11 +260,12 @@ function overlay(html){closeOverlay();keys.clear();mouse.down=false;ovEl=documen
   setTimeout(()=>{if(ovEl&&!ovEl.contains(document.activeElement)){const f=ovEl.querySelector('input,button:not([disabled])');if(f)f.focus({preventScroll:true});}},30);
   ovEl.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeOverlay();});ovEl.addEventListener('pointerdown',e=>e.stopPropagation());
   ovEl.addEventListener('click',e=>{if(e.target===ovEl)closeOverlay();});return ovEl;}
+const FAST=3; // seconds: an answer quicker than this earns the speed bonus
 function mathBox(hostEl,a,b,question,skipLabel,onDone){
   hostEl.innerHTML=`<div class="mathbox"><div class="q">${question}</div><form class="eq"><span>${a} × ${b} =</span><input id="mx-${Date.now()}" inputmode="numeric" autocomplete="off" maxlength="3" aria-label="Your answer"><button class="btn" type="submit">Check</button>${skipLabel?`<button class="ghost" type="button" data-skip>${skipLabel}</button>`:''}</form><div class="verdict" aria-live="polite"></div></div>`;
   const input=hostEl.querySelector('input'),vd=hostEl.querySelector('.verdict'),t0=performance.now();let fin=false;setTimeout(()=>input.focus(),40);
   hostEl.querySelector('form').addEventListener('submit',e=>{e.preventDefault();if(fin)return;const v=parseInt(input.value,10);if(isNaN(v))return;fin=true;input.disabled=true;const secs=(performance.now()-t0)/1000;
-    if(v===a*b){vd.className='verdict ok';vd.textContent=secs<3?`Lightning fast! ${secs.toFixed(1)}s.`:`Right! ${secs.toFixed(1)}s.`;SFX.ok();record(a,b,true,secs);onDone(true,secs,vd);}
+    if(v===a*b){vd.className='verdict ok';vd.textContent=secs<FAST?"Whoa, that's fast, pardner!":'Correct!';SFX.ok();record(a,b,true,secs);onDone(true,secs,vd);}
     else{vd.className='verdict bad';vd.innerHTML=`Not quite. ${a} × ${b} = <b>${a*b}</b>.`;SFX.bad();record(a,b,false,secs);onDone(false,secs,vd);}});
   const sk=hostEl.querySelector('[data-skip]');if(sk)sk.addEventListener('click',()=>{if(fin)return;fin=true;onDone(null,0,vd);});
 }
@@ -412,10 +413,10 @@ function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+
   const keep=body.querySelector('[data-keep]');if(keep)keep.addEventListener('click',()=>{pour(G.sack,G.stock);SFX.place();hud();save();openAssay('sell','Locked in the strongbox. It will keep until you sell.');});
   const hostEl=body.querySelector('[data-math]');
   const pay=mult=>{const extra=Math.round(base*mult),cash=base+extra;G.sack=bag();G.stock=bag();SFX.coins();flag('sold');award('sale1');earn(cash);OKEYS.forEach(k=>{if(tot[k])progress(k==='gem'||k==='ruby'?'gems':k,tot[k]);});save();if(keep)keep.remove();return [cash,extra];};
-  const [a,b]=pickFact(),q=`The weigh-in. Answer the assayer's sum and he pays <b>50% more</b> for the whole lot ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;
+  const [a,b]=pickFact(),q=`The weigh-in. Answer the assayer's sum and he pays <b>50% more</b> for the whole lot ($${Math.round(base*.5)} extra). Under ${FAST} seconds: <b>75% more</b>.`;
   mathBox(hostEl,a,b,q,`Just sell for $${base}`,(ok,secs,vd)=>{
-    const [cash,extra]=pay(ok?(secs<3?.75:.5):0);
-    if(ok)vd.textContent+=` Paid $${cash}. That is $${extra} more than just selling!`;else if(ok===null){vd.className='verdict ok';vd.textContent=`Paid $${cash}. Doing the math would have paid $${base+Math.round(base*.5)}.`;}else vd.innerHTML+=` Paid $${cash}, with no bonus this time.`;});}
+    const fast=ok&&secs<FAST,[cash,extra]=pay(ok?(fast?.75:.5):0);
+    if(ok)vd.textContent+=fast?` Speed bonus: 75% more. Paid $${cash}, which is $${extra} more than just selling!`:` Paid $${cash}, which is $${extra} more than just selling!`;else if(ok===null){vd.className='verdict ok';vd.textContent=`Paid $${cash}. Doing the math would have paid $${base+Math.round(base*.5)}.`;}else vd.innerHTML+=` Paid $${cash}, with no bonus this time.`;});}
 function assayGeode(body){const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   if(!gd){body.innerHTML=`<p class="sub">"No geodes? They look like round grey lumps in the rock. Dig some out and we'll saw them open. Every one is a times-table fact, and a streak of right answers pays more."</p>`;return;}
   const rows=[0,1,2,3,4,5,6,7,8,9,10].map(r=>{let m=0;if(r)for(let c=1;c<=10;c++)if((FS.f[fk(r,c)]||{}).m)m++;return `<button class="rowpick${r&&m===10?' done':''}" type="button" data-row="${r}" aria-pressed="${geoRow===r}">${r?r+'s':'Mixed'}${r?`<small>${m}/10</small>`:''}</button>`;}).join('');
@@ -424,7 +425,7 @@ function assayGeode(body){const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   body.querySelectorAll('[data-row]').forEach(b=>b.addEventListener('click',()=>{geoRow=+b.dataset.row;openAssay('geode');}));
   const [a,b]=geoRow?pickRow(geoRow):pickFact();
   mathBox(body.querySelector('[data-math]'),a,b,`${['A stone','An amethyst','A granite star'][tier]} geode is on the saw. What's inside?`,null,(ok,secs,vd)=>{G.geodes[tier]--;let val;
-    if(ok){G.combo++;val=[6,12,20][tier]+2*Math.min(6,G.combo-1)+(secs<3?4:0)+2*perk('hound');vd.textContent+=` Crystals! The lapidary pays $${val}.${G.combo>1?` Streak of ${G.combo}!`:''}`;SFX.gem();if(G.combo>=5)award('combo5');}
+    if(ok){G.combo++;const fast=secs<FAST;val=[6,12,20][tier]+2*Math.min(6,G.combo-1)+(fast?4:0)+2*perk('hound');vd.textContent+=` Crystals! The lapidary pays $${val}${fast?', with a $4 speed bonus':''}.${G.combo>1?` Streak of ${G.combo}!`:''}`;SFX.gem();if(G.combo>=5)award('combo5');}
     else{G.combo=0;val=1;vd.innerHTML+=' It cracked badly. $1 for the shards.';}
     G.today.geodes++;flag('geode');earn(val);progress('geodes',1);save();setTimeout(()=>{if(ovEl&&assayTab==='geode')openAssay('geode');},ok?950:2200);});}
 function assayBoard(body){const c=G.contract;let h='';
@@ -507,10 +508,10 @@ function blastShape(tx,ty,fx,fy,deep){const dx=tx+.5-p.x,dy=ty+.5-(p.y-1),D=5+pe
   const dir=Math.sign(dy)||1,o=fx-tx<.5?tx-1:tx+1;return {x0:Math.min(tx,o),y0:dir>0?ty:ty-D+1,w:2,h:D,dx:0,dy:dir,D};}
 function armDynamite(tx,ty){const fx0=mouse.fx,fy0=mouse.fy;
   const [a,b]=pickFact();
-  const ov=overlay(`<div class="eyebrow">Arm the charges</div><div class="sticks" style="grid-template-columns:repeat(${b},auto)">${'<span class="stick"></span>'.repeat(a*b)}</div><div class="sub">${a} ${a===1?'row':'rows'} of ${b} ${b===1?'stick':'sticks'}. The blast bores 2 blocks wide, straight away from you. Answer in under 3 seconds and it goes 3 blocks deeper.</div><div data-math></div>`);
+  const ov=overlay(`<div class="eyebrow">Arm the charges</div><div class="sticks" style="grid-template-columns:repeat(${b},auto)">${'<span class="stick"></span>'.repeat(a*b)}</div><div class="sub">${a} ${a===1?'row':'rows'} of ${b} ${b===1?'stick':'sticks'}. The blast bores 2 blocks wide, straight away from you. Answer in under ${FAST} seconds and it goes 3 blocks deeper.</div><div data-math></div>`);
   mathBox(ov.querySelector('[data-math]'),a,b,'How many charges?','Cancel',(ok,secs,vd)=>{
     if(ok===null){closeOverlay();return;}
-    if(ok){setTimeout(()=>{closeOverlay();G.pack.dyn--;hud();explode(blastShape(tx,ty,fx0,fy0,secs<3),secs<3?1.35:1);},500);}
+    if(ok){const fast=secs<FAST;if(fast)vd.textContent+=' Speed bonus: the blast bores 3 blocks deeper!';setTimeout(()=>{closeOverlay();G.pack.dyn--;hud();explode(blastShape(tx,ty,fx0,fy0,fast),fast?1.35:1);},fast?1300:500);}
     else{vd.innerHTML+=' The fuse fizzled. Your stick is safe, try again.';setTimeout(closeOverlay,1900);}
   });
 }
@@ -653,10 +654,11 @@ function updateRats(dt){
     r.f=0;r.dy=0;
     if(r.state==='down'){
       if(Math.hypot(r.x-p.x,r.y-(p.y-.6))>1.7&&r.tries<8){r.tries++;const np=ratPath(a[0],a[1],Math.floor(p.x),Math.floor(p.y-.5));if(np&&np.length>1){r.path=np;r.i=0;continue;}}
-      const c=r.cargo;G.pack[c.id]+=c.n;G.pending=[];float(p.x,p.y-2.3,`+${c.n} ${c.name}`,'#f0e6d6');SFX.place();SFX.squeak();hud();save();
+      const c=r.cargo;if(c.id==='oil'){G.oil=Math.min(100,G.oil+c.n);float(p.x,p.y-2.3,'Lamp oil!','#f2b33d');}else{G.pack[c.id]+=c.n;float(p.x,p.y-2.3,`+${c.n} ${c.name}`,'#f0e6d6');}G.pending=[];SFX.place();SFX.squeak();hud();save();
       r.cargo=null;r.state='up';r.wait=.8;r.dx=-r.dx;const [hx,hy]=ratHome();r.path=ratPath(a[0],a[1],hx,hy)||[a];r.i=0;}
     else rats.splice(k,1);}
   const show=underground();if(ratB.hidden===show)ratB.hidden=!show;
+  const lowOil=oilOffer();if(oilB.hidden===lowOil)oilB.hidden=!lowOil;
   if(show&&G.pack.ladder===0&&!rats.length)once('pip','Out of ladders? Press R to call Pip the pack rat. He runs supplies down to you, at double price.');}
 function drawRat(r){const P=tilePx,u=P/16,onFloor=!r.dy&&solid(Math.floor(r.x),Math.floor(r.y)+1);
   g.save();g.translate(r.x*P,(r.y+(onFloor?.3:0))*P);if(r.dy)g.rotate(r.dy>0?Math.PI/2:-Math.PI/2);else g.scale(r.dx<0?-1:1,1);
@@ -669,7 +671,8 @@ function drawRat(r){const P=tilePx,u=P/16,onFloor=!r.dy&&solid(Math.floor(r.x),M
   // the pouch: full on the way down, flat on the way back
   if(r.cargo){g.fillStyle='#5d4a2a';g.beginPath();g.ellipse(-1.2*u,-3.6*u,4.1*u,3.5*u,0,0,7);g.fill();g.fillStyle='#b08f5a';g.beginPath();g.ellipse(-1.2*u,-3.6*u,3.6*u,3*u,0,0,7);g.fill();
     g.fillStyle='#cdb07a';g.beginPath();g.ellipse(-2.2*u,-4.6*u,1.4*u,1*u,-.4,0,7);g.fill();
-    g.fillStyle=r.cargo.id==='ladder'?'#a87643':'#7b5230';g.fillRect(-3.4*u,-8.6*u,1*u,3.4*u);g.fillRect(-.6*u,-8.9*u,1*u,3.6*u);if(r.cargo.id==='ladder'){g.fillRect(-3.4*u,-7.9*u,3.8*u,.8*u);g.fillRect(-3.4*u,-6.4*u,3.8*u,.8*u);}}
+    if(r.cargo.id==='oil'){g.fillStyle='#2c2e33';g.fillRect(-3.2*u,-9.4*u,4*u,4.2*u);g.fillStyle='#c9a33a';g.fillRect(-2.8*u,-8.6*u,3.2*u,1.4*u);g.fillStyle='#2c2e33';g.fillRect(-2*u,-10.4*u,1.6*u,1.2*u);g.fillRect(.6*u,-9.8*u,1.8*u,.8*u);}
+    else{g.fillStyle=r.cargo.id==='ladder'?'#a87643':'#7b5230';g.fillRect(-3.4*u,-8.6*u,1*u,3.4*u);g.fillRect(-.6*u,-8.9*u,1*u,3.6*u);}if(r.cargo.id==='ladder'){g.fillRect(-3.4*u,-7.9*u,3.8*u,.8*u);g.fillRect(-3.4*u,-6.4*u,3.8*u,.8*u);}}
   else{g.fillStyle='#5d4a2a';g.beginPath();g.ellipse(-1.2*u,-2.9*u,3*u,1.5*u,0,0,7);g.fill();g.fillStyle='#b08f5a';g.beginPath();g.ellipse(-1.2*u,-2.9*u,2.6*u,1.1*u,0,0,7);g.fill();}
   g.strokeStyle='#5d4a2a';g.lineWidth=Math.max(1,u*.7);g.beginPath();g.moveTo(-2.6*u,-1.6*u);g.lineTo(-2*u,3*u);g.stroke();
   // head, ears, face
@@ -692,6 +695,23 @@ function callRat(){if(ovEl)return;if(!underground()){toast('Pip only delivers un
       const n=gd.q+(ok?1:0),pay=Math.min(G.money,f.cost);G.money-=pay;G.debt+=f.cost-pay;const c={id:gd.id,n,name:gd.name};G.pending=[c];hud();save();
       if(ok===null){vd.className='verdict ok';vd.textContent='';}vd.innerHTML+=` Pip is on the way with ${n} ${gd.name}!`;
       setTimeout(()=>{if(ovEl===ov)closeOverlay();spawnRat(c);},ok===null?600:1500);});}));}
+const OILSTEP=20,OILNAMES=['extra time','extra extra time','extra extra extra time'];
+const oilOffer=()=>underground()&&!G.carbide&&G.oil<25&&G.oilRun!==G.day&&!rats.length;
+// Up to three sums in a row. Each right answer adds lamp oil, half as much again if it was fast. A wrong answer ends the run.
+function callOil(){if(ovEl)return;if(G.carbide){toast('Your carbide lamp never runs low.');return;}if(!underground()){toast('Pip only delivers underground.');return;}
+  if(rats.length){toast('Pip is already on the way!');return;}if(G.oilRun===G.day){toast('Pip has already made his oil run today. Sleep at the Bunkhouse for a full lamp.');return;}if(G.oil>=25){toast('Your lamp is fine for now. Pip brings oil when it runs low.');return;}
+  let got=0,n=0;
+  const ov=overlay(`<div class="eyebrow">Lamp running low</div><h3>Oil from Pip</h3><p class="sub">Pip will run lamp oil down to you. Answer up to <b>3 sums</b>: each right answer earns more time on your lamp, and half as much again if you are fast. One wrong answer and Pip sets off with what you have earned. He makes this run once a day.</p><div class="oilrun" data-run></div><div data-math></div><div class="foot"><button class="ghost" data-close>Never mind (Esc)</button></div>`);
+  const run=ov.querySelector('[data-run]'),host=ov.querySelector('[data-math]'),close=ov.querySelector('[data-close]');
+  const show=()=>{run.innerHTML=OILNAMES.map((nm,k)=>`<span class="${k<n?'on':''}">${k+1}. ${nm}</span>`).join('')+`<b>${got?'+'+Math.round(got)+'% lamp oil':'No oil earned yet'}</b>`;};
+  const send=()=>{if(ovEl===ov)closeOverlay();if(!got)return;G.oilRun=G.day;const c={id:'oil',n:got,name:'lamp oil'};G.pending=[c];save();spawnRat(c);toast(`Pip is on his way with oil: +${Math.round(got)}% for your lamp.`,3600);};
+  close.addEventListener('click',()=>{if(got)send();else closeOverlay();});
+  const ask=()=>{show();const [a,b]=pickFact();mathBox(host,a,b,`Sum ${n+1} of 3, for ${OILNAMES[n]}.`,null,(ok,secs,vd)=>{
+    if(ok){const fast=secs<FAST,add=OILSTEP*(fast?1.5:1);got+=add;n++;vd.textContent+=fast?` Speed bonus! +${add}% lamp oil.`:` +${add}% lamp oil.`;show();close.textContent='Send Pip now';
+      if(n>=3)setTimeout(send,1500);else setTimeout(()=>{if(ovEl===ov)ask();},1300);}
+    else{vd.innerHTML+=got?' Pip heads off with what you earned.':' No oil this time. Pip will try again tomorrow.';if(!got)G.oilRun=G.day;setTimeout(send,2000);}});};
+  ask();}
+const oilB=$('#oilBtn');oilB.addEventListener('pointerdown',e=>e.stopPropagation());oilB.addEventListener('click',e=>{e.stopPropagation();callOil();stage.focus({preventScroll:true});});
 const ratB=$('#ratBtn');ratB.addEventListener('pointerdown',e=>e.stopPropagation());ratB.addEventListener('click',e=>{e.stopPropagation();callRat();stage.focus({preventScroll:true});});
 function explode(sh,pw){
   const ox=sh.dx?(sh.dx>0?sh.x0:sh.x0+sh.w):sh.x0+1,oy=sh.dy?(sh.dy>0?sh.y0:sh.y0+sh.h):sh.y0+1,cx=sh.x0+sh.w/2,cy=sh.y0+sh.h/2;
@@ -745,13 +765,14 @@ function waterTick(){
 const kname=e=>e.key.length===1?e.key.toLowerCase():e.key;
 const TOOLKEYS={'1':'pick','2':'ladder','3':'timber','4':'fill','5':'dyn','6':'survey','7':'belt','8':'rail','9':'pump','0':'hoist'};
 stage.addEventListener('keydown',e=>{if(ovEl){if(e.key==='Escape')closeOverlay();return;}const k=kname(e);
-  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k)||(k.length===1&&'wasdemjlr1234567890'.includes(k)))e.preventDefault();
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k)||(k.length===1&&'wasdemjlro1234567890'.includes(k)))e.preventDefault();
   if(k==='Escape'){openMenu();return;}
   if(k==='m'||k==='j'){openJournal();return;}
   if(k==='l'){if(!G.pack.lamp&&!G.f.had_lamp)toast('Buy a mine lantern at the General Store first.');else{setTool('lamp');hud();}}
   if(TOOLKEYS[k]){const t=TOOLKEYS[k];if(['belt','rail','pump','hoist'].includes(t)&&!G.pack[t]&&!G.f['had_'+t])toast('Buy that at the General Store first.');else{setTool(t);hud();}}
   if(k==='e')interact();
   if(k==='r')callRat();
+  if(k==='o')callOil();
   keys.add(k);});
 stage.addEventListener('keyup',e=>keys.delete(kname(e)));
 stage.addEventListener('blur',()=>{if(!ovEl)keys.clear();});
@@ -903,7 +924,7 @@ function update(dt){
   if(depth>7&&!ovEl&&!G.carbide&&G.oil>0&&!lamps.some(l=>Math.hypot(l.x+.5-p.x,l.y+.5-p.y)<5.2)){G.oil-=dt*100/(G.shift*(1+.35*perk('lamp')));
     if(G.oil<=0){if(G.pack.flask>0){G.pack.flask--;G.oil=100;toast('Your lamp ran dry, so you refilled it from an oil flask.',3200);hud();}
       else{G.oil=0;toast('Your lamp is out of oil! It is pitch dark. Climb out and sleep at the Bunkhouse.',5600,true);SFX.bad();}}
-    else if(G.oil<25)once('lowoil'+G.day,'Your lamp is getting low. Finish up and head for the surface, then sleep at the Bunkhouse.',true);}
+    else if(G.oil<25)once('lowoil'+G.day,G.oilRun===G.day?'Your lamp is getting low. Finish up and head for the surface, then sleep at the Bunkhouse.':'Your lamp is getting low! Press O and Pip will run some oil down to you, if you can answer his sums.',true);}
   oilEl.style.setProperty('--v',(G.carbide?100:G.oil)+'%');oilEl.classList.toggle('low',!G.carbide&&G.oil<25);
   seenT-=dt;if(seenT<=0){seenT=.3;markSeen();}
   if(proxDirty){proxT-=dt;if(proxT<=0){proxT=1.5;calcProx();proxDirty=false;}}
@@ -1344,6 +1365,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
