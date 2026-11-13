@@ -306,7 +306,8 @@ function openStore(msg){
     if(q===1){buy(it,1,pr);openStore(`Bought: ${it.name}.`);return;}
     ov.querySelectorAll('[data-buy]').forEach(x=>x.disabled=true);
     const mh=ov.querySelector('[data-math]');ov.querySelector('.card').scrollTop=0;
-    mathBox(mh,q,pr,`${it.name} ×${q}: count the cost yourself and the shopkeeper throws in ${Math.ceil(q*.4)} extra for free.`,'Just pay',(ok,secs,vd)=>{
+    const [fa,fb]=pickFact();
+    mathBox(mh,fa,fb,`${it.name} ×${q} for $${q*pr}. Answer the shopkeeper's sum and he throws in ${Math.ceil(q*.4)} extra for free.`,'Just pay',(ok,secs,vd)=>{
       const total=q*pr;
       if(ok){const ex=Math.ceil(q*.4);buy(it,q+ex,total);vd.textContent+=` You get ${q+ex} for $${total}.`;}
       else{buy(it,q,total);if(ok===null){vd.className='verdict ok';vd.textContent=`Paid $${total} for ${q}.`;}else vd.innerHTML+=` Paid $${total} for ${q}.`;}
@@ -411,9 +412,7 @@ function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+
   const keep=body.querySelector('[data-keep]');if(keep)keep.addEventListener('click',()=>{pour(G.sack,G.stock);SFX.place();hud();save();openAssay('sell','Locked in the strongbox. It will keep until you sell.');});
   const hostEl=body.querySelector('[data-math]');
   const pay=mult=>{const extra=Math.round(base*mult),cash=base+extra;G.sack=bag();G.stock=bag();SFX.coins();flag('sold');award('sale1');earn(cash);OKEYS.forEach(k=>{if(tot[k])progress(k==='gem'||k==='ruby'?'gems':k,tot[k]);});save();if(keep)keep.remove();return [cash,extra];};
-  let mk=null;['copper','silver','gold'].forEach(k=>{if(tot[k]&&(!mk||Math.min(tot[k],10)*valOf(k)>Math.min(tot[mk],10)*valOf(mk)))mk=k;});
-  let a,b,q;if(mk){a=Math.min(tot[mk],10);b=valOf(mk);q=`The weigh-in: ${a} ${mk} at $${b} each. Work it out and the assayer pays <b>50% more</b> for the whole lot ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;}
-  else{[a,b]=pickFact();q=`The assayer tests you before he buys gems. Get it right and he pays <b>50% more</b> ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;}
+  const [a,b]=pickFact(),q=`The weigh-in. Answer the assayer's sum and he pays <b>50% more</b> for the whole lot ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;
   mathBox(hostEl,a,b,q,`Just sell for $${base}`,(ok,secs,vd)=>{
     const [cash,extra]=pay(ok?(secs<3?.75:.5):0);
     if(ok)vd.textContent+=` Paid $${cash}. That is $${extra} more than just selling!`;else if(ok===null){vd.className='verdict ok';vd.textContent=`Paid $${cash}. Doing the math would have paid $${base+Math.round(base*.5)}.`;}else vd.innerHTML+=` Paid $${cash}, with no bonus this time.`;});}
@@ -688,7 +687,8 @@ function callRat(){if(ovEl)return;if(!underground()){toast('Pip only delivers un
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);
   ov.querySelectorAll('[data-rat]').forEach(bt=>bt.addEventListener('click',()=>{const gd=RATGOODS.find(x=>x.id===bt.dataset.rat),f=info(gd);
     ov.querySelectorAll('[data-rat]').forEach(x=>x.disabled=true);
-    mathBox(ov.querySelector('[data-math]'),gd.q,f.u,`Check Pip's bill: ${gd.q} ${gd.name} at $${f.u} each. Get it right and Pip packs one extra for free.`,'Just send Pip',(ok,secs,vd)=>{
+    const [fa,fb]=pickFact();
+    mathBox(ov.querySelector('[data-math]'),fa,fb,`${gd.q} ${gd.name} for $${f.cost}. Answer Pip's sum and he packs one extra for free.`,'Just send Pip',(ok,secs,vd)=>{
       const n=gd.q+(ok?1:0),pay=Math.min(G.money,f.cost);G.money-=pay;G.debt+=f.cost-pay;const c={id:gd.id,n,name:gd.name};G.pending=[c];hud();save();
       if(ok===null){vd.className='verdict ok';vd.textContent='';}vd.innerHTML+=` Pip is on the way with ${n} ${gd.name}!`;
       setTimeout(()=>{if(ovEl===ov)closeOverlay();spawnRat(c);},ok===null?600:1500);});}));}
@@ -1344,6 +1344,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
