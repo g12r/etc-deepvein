@@ -1455,6 +1455,29 @@ function drawCart(c){const P=tilePx,X=(c.x-.46)*P,Y=c.y*P,n=cnt(c.load);
   g.fillStyle='#8a8f96';g.fillRect(X,Y+P*.4,P*.92,P*.07);g.fillRect(X+P*.08,Y+P*.6,P*.76,P*.05);
   g.fillStyle='#24180f';g.beginPath();g.arc(X+P*.24,Y+P*.88,P*.11,0,7);g.arc(X+P*.68,Y+P*.88,P*.11,0,7);g.fill();}
 
+// On a ladder the miner turns to face it: we see his back, hands on the rails, climbing hand over hand.
+function drawClimber(){const P=tilePx,u=P/16,sw=Math.sin(p.y*8),cw=Math.cos(p.y*8);
+  g.save();g.translate(p.x*P,p.y*P);if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
+  const limb=(x1,y1,x2,y2,w,c)=>{g.strokeStyle=c;g.lineWidth=w*u;g.lineCap='round';g.beginPath();g.moveTo(x1*u,y1*u);g.lineTo(x2*u,y2*u);g.stroke();};
+  // legs: one knee comes up as the other pushes down
+  [[-2.4,sw],[2.4,-sw]].forEach(([lx,k],n)=>{const lift=Math.max(0,k)*2.6,kx=lx+(lx<0?-1:1)*Math.max(0,k)*1.3;
+    limb(lx,-9.4,kx,-5.2-lift,3.9,n?'#3a291b':'#44301f');limb(kx,-5.2-lift,lx,-1.6-lift,3.6,n?'#3a291b':'#44301f');
+    g.fillStyle='#17110b';rr((lx-2.5)*u,(-2.6-lift)*u,5*u,2.7*u,1.1*u);g.fillStyle='rgba(255,255,255,.1)';g.fillRect((lx-2.1)*u,(-2.5-lift)*u,4.2*u,.5*u);});
+  // sack slung over one shoulder
+  const n=load_();if(n){const sz=3.2+Math.min(5,n*.4);g.fillStyle='#6f5a36';g.beginPath();g.ellipse(-5.6*u,-11.4*u,sz*u*.8,sz*u*1.02,.15,0,7);g.fill();g.fillStyle='#a88a5a';g.beginPath();g.ellipse(-5.8*u,-11.8*u,sz*u*.68,sz*u*.9,.15,0,7);g.fill();g.fillStyle='#5d4a2a';g.fillRect(-4.6*u,(-12.4-sz)*u,2.4*u,1.8*u);}
+  // arms reach up to the rails, hand over hand
+  [[-4.6,sw],[4.6,-sw]].forEach(([ax,k])=>{const hy=-25.2-k*2.4,ex=ax+(ax<0?-1.6:1.6);limb(ax,-17.2,ex,-20.6-k*1.1,3.3,'#285577');limb(ex,-20.6-k*1.1,ax+(ax<0?-.7:.7),hy,3,'#2f5f8a');
+    g.fillStyle='#b98860';g.beginPath();g.arc((ax+(ax<0?-.7:.7))*u,hy*u,1.75*u,0,7);g.fill();g.fillStyle='#e2b38a';g.beginPath();g.arc((ax+(ax<0?-.7:.7))*u,(hy-.2)*u,1.35*u,0,7);g.fill();});
+  // back: shirt, crossed suspenders, belt
+  g.fillStyle='#2f5f8a';rr(-5.6*u,-18.8*u,11.2*u,10.6*u,2.6*u);g.fillStyle='rgba(0,0,0,.14)';rr(-5.6*u,-18.8*u,2.6*u,10.6*u,1.6*u);rr(3*u,-18.8*u,2.6*u,10.6*u,1.6*u);g.fillStyle='rgba(255,255,255,.07)';rr(-1.6*u,-18.4*u,3.2*u,9.6*u,1.4*u);
+  limb(-3.4,-18.2,3,-9.9,1.5,'#8f3524');limb(3.4,-18.2,-3,-9.9,1.5,'#8f3524');g.fillStyle='#d9b24a';g.fillRect(-.9*u,-14.9*u,1.8*u,1.8*u);
+  g.fillStyle='#2a1d12';g.fillRect(-5.6*u,-10.2*u,11.2*u,2*u);g.fillStyle='#3b2a1e';rr(-5.4*u,-8.6*u,10.8*u,2.2*u,1*u);
+  // the back of his head and hat
+  const tilt=cw*.5;g.fillStyle='#e2b38a';rr((-2.6+tilt)*u,-21.2*u,5.2*u,3.2*u,1.2*u);g.beginPath();g.arc((-4.5+tilt)*u,-22.6*u,1.1*u,0,7);g.arc((4.5+tilt)*u,-22.6*u,1.1*u,0,7);g.fill();
+  g.fillStyle='#b8452f';rr((-4.2+tilt)*u,-20*u,8.4*u,2.2*u,1.1*u);
+  g.fillStyle='#6a4526';rr((-4.3+tilt)*u,-25.8*u,8.6*u,5.4*u,2.6*u);g.fillStyle='rgba(0,0,0,.18)';g.fillRect((-.4+tilt)*u,-25*u,.8*u,4.2*u);
+  g.fillStyle='#5d3d1f';rr((-7.2+tilt)*u,-26.8*u,14.4*u,2.4*u,1.1*u);g.fillStyle='#7a4f27';rr((-4.7+tilt)*u,-30.4*u,9.4*u,4.6*u,2.3*u);g.fillStyle='#3d2814';g.fillRect((-4.7+tilt)*u,-27.6*u,9.4*u,1*u);g.fillStyle='rgba(255,255,255,.1)';rr((-3.6+tilt)*u,-30*u,3*u,2*u,1*u);
+  g.restore();}
 function draw(){
   const Wd=cv.width,Hd=cv.height;tilePx=Wd/VIEW;const P=tilePx;
   const sh=shake*shake*P*.9,sx=(Math.random()-.5)*sh,sy=(Math.random()-.5)*sh;
@@ -1564,6 +1587,7 @@ function draw(){
       const ax=(sh.x0+sh.w/2)*P,ay=(sh.y0+sh.h/2)*P,L=P*.7;g.fillStyle=far?'rgba(190,190,190,.8)':'rgba(255,220,150,.95)';g.beginPath();g.moveTo(ax+sh.dx*L,ay+sh.dy*L);g.lineTo(ax-sh.dx*L*.4-sh.dy*L*.6,ay-sh.dy*L*.4-sh.dx*L*.6);g.lineTo(ax-sh.dx*L*.4+sh.dy*L*.6,ay-sh.dy*L*.4+sh.dx*L*.6);g.fill();}
     else if(G.tool==='survey'){g.strokeStyle='rgba(255,210,94,.8)';g.setLineDash([P*.2,P*.15]);g.strokeRect(X-P*2,Y-P*2,P*5,P*5);g.setLineDash([]);}}
   // ----- the miner -----
+  if(p.climb)drawClimber();else
   {g.save();g.translate(p.x*P,p.y*P);g.scale(p.face,1);const u=P/16;const walking=p.ground&&Math.abs(p.vx)>.5;const ph=walking?time*15:p.climb?p.y*8:0;const sw=walking||p.climb?Math.sin(ph):0;const bob=walking?Math.abs(Math.cos(ph))*.8:p.ground?Math.sin(time*2.2)*.25:0;
     if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
     if(p.ground){g.fillStyle='rgba(0,0,0,.28)';g.beginPath();g.ellipse(0,0,6.5*u,1.3*u,0,0,7);g.fill();}
