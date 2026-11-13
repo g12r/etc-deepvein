@@ -135,6 +135,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .trophy.on{border-color:var(--gold);color:var(--gold)}
 .dealtag{font-family:var(--label);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:var(--tnt);color:#fff;border-radius:4px;padding:0 6px;margin-left:6px}
 .card .map{grid-template-columns:repeat(11,34px);grid-auto-rows:26px}
+.cashhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.cashbig{font-family:var(--label);font-weight:700;font-size:3rem;line-height:.95;color:var(--ok);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cashbig small{display:block;font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .fsbtn{right:126px}
 .ratbtn{right:240px}
 .stage.fill{position:fixed;inset:0;z-index:50;margin:0;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;max-width:none}
@@ -552,7 +555,7 @@ const load_=()=>cnt(G.sack);
 const oilEl=$('#hOil'),goalEl=$('#hGoal');
 function hud(){
   if(!G)return;
-  $('#hMoney').textContent='$'+G.money+(G.debt?' (owe $'+G.debt+')':'');const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
+  $('#hMoney').textContent='$'+G.money+(G.debt?' (owe $'+G.debt+')':'');showCash();const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   $('#hSack').innerHTML=`${load_()}/${CAP()} ${OKEYS.filter(k=>G.sack[k]).map(k=>`<span style="color:${ORE[KT[k]].c}">${k==='gem'||k==='ruby'?'\u25c6':'\u25cf'}${G.sack[k]}</span>`).join(' ')}${gd?` <span class="ge">\u2b1f${gd}</span>`:''}`;
   $('#hSackChip').classList.toggle('full',load_()>=CAP());
   $('#hHaul').hidden=!cnt(G.stock);$('#hHaulN').textContent=cnt(G.stock);
@@ -734,9 +737,10 @@ function pickRow(a){const now=Date.now(),cand=[];let tot=0;for(let b=1;b<=10;b++
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[1];if(r<=0){pick=c;break;}}lastB=pick[0];return [a,pick[0]];}
 function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   const tabs=[['sell','Sell ore'],['geode',`Crack geodes${gd?` (${gd})`:''}`],['board',`Contracts${G.contract?'':' (new!)'}`]].map(([k,l])=>`<button class="tab" type="button" data-tab="${k}" aria-pressed="${assayTab===k}">${l}</button>`).join('');
-  const ov=overlay(`<h3>Assay Office</h3><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+  const ov=overlay(`<div class="cashhead"><h3>Assay Office</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);ov.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openAssay(b.dataset.tab)));
-  ({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
+  showCash();({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
+function showCash(){document.querySelectorAll('[data-cash]').forEach(el=>{el.innerHTML='$'+G.money+'<small>'+(G.debt?'you owe $'+G.debt:'your cash')+'</small>';});}
 function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+(G.stock[k]||0));const all=cnt(tot),P=G.price,tr=trust(),sackN=load_();
   const fc=G.priceNext>P?'\u25b2 The telegraph says gold goes UP tomorrow':G.priceNext<P?'\u25bc The telegraph says gold goes DOWN tomorrow':'\u25a0 Gold should hold steady tomorrow';
   const list=b=>OKEYS.filter(k=>b[k]).map(k=>`<b>${b[k]}</b> ${b[k]===1?ORE[KT[k]].one:ORE[KT[k]].n}`).join(', ')||'nothing';

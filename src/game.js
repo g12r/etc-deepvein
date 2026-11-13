@@ -213,7 +213,7 @@ const load_=()=>cnt(G.sack);
 const oilEl=$('#hOil'),goalEl=$('#hGoal');
 function hud(){
   if(!G)return;
-  $('#hMoney').textContent='$'+G.money+(G.debt?' (owe $'+G.debt+')':'');const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
+  $('#hMoney').textContent='$'+G.money+(G.debt?' (owe $'+G.debt+')':'');showCash();const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   $('#hSack').innerHTML=`${load_()}/${CAP()} ${OKEYS.filter(k=>G.sack[k]).map(k=>`<span style="color:${ORE[KT[k]].c}">${k==='gem'||k==='ruby'?'◆':'●'}${G.sack[k]}</span>`).join(' ')}${gd?` <span class="ge">⬟${gd}</span>`:''}`;
   $('#hSackChip').classList.toggle('full',load_()>=CAP());
   $('#hHaul').hidden=!cnt(G.stock);$('#hHaulN').textContent=cnt(G.stock);
@@ -395,9 +395,10 @@ function pickRow(a){const now=Date.now(),cand=[];let tot=0;for(let b=1;b<=10;b++
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[1];if(r<=0){pick=c;break;}}lastB=pick[0];return [a,pick[0]];}
 function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   const tabs=[['sell','Sell ore'],['geode',`Crack geodes${gd?` (${gd})`:''}`],['board',`Contracts${G.contract?'':' (new!)'}`]].map(([k,l])=>`<button class="tab" type="button" data-tab="${k}" aria-pressed="${assayTab===k}">${l}</button>`).join('');
-  const ov=overlay(`<h3>Assay Office</h3><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+  const ov=overlay(`<div class="cashhead"><h3>Assay Office</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);ov.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openAssay(b.dataset.tab)));
-  ({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
+  showCash();({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
+function showCash(){document.querySelectorAll('[data-cash]').forEach(el=>{el.innerHTML='$'+G.money+'<small>'+(G.debt?'you owe $'+G.debt:'your cash')+'</small>';});}
 function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+(G.stock[k]||0));const all=cnt(tot),P=G.price,tr=trust(),sackN=load_();
   const fc=G.priceNext>P?'▲ The telegraph says gold goes UP tomorrow':G.priceNext<P?'▼ The telegraph says gold goes DOWN tomorrow':'■ Gold should hold steady tomorrow';
   const list=b=>OKEYS.filter(k=>b[k]).map(k=>`<b>${b[k]}</b> ${b[k]===1?ORE[KT[k]].one:ORE[KT[k]].n}`).join(', ')||'nothing';
