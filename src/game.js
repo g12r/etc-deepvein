@@ -755,18 +755,20 @@ stage.addEventListener('keyup',e=>keys.delete(kname(e)));
 stage.addEventListener('blur',()=>{if(!ovEl)keys.clear();});
 let tilePx=32,offX=0,offY=0;
 function tileAt(e){const r=cv.getBoundingClientRect(),dpr=cv.width/r.width,fx=((e.clientX-r.left)*dpr-offX)/tilePx,fy=((e.clientY-r.top)*dpr-offY)/tilePx;return [Math.floor(fx),Math.floor(fy),fx,fy];}
-const reach=(tx,ty,r)=>Math.hypot(tx+.5-p.x,ty+.5-(p.y-p.h/2))<=(r||REACH);
+const RANGE={ladder:2,dyn:2,hoist:2,survey:3};
+// how many blocks of gap lie between the miner's body and a tile
+const gapTo=(tx,ty)=>Math.max(Math.max(0,Math.abs(tx+.5-p.x)-.5-p.w/2),Math.max(0,(p.y-p.h)-(ty+1),ty-p.y));
+const reach=(tx,ty,r)=>gapTo(tx,ty)<(r||RANGE[G.tool]||1);
 const DRAGTOOLS=['ladder','fill','rail','belt'];let dragPlace=false,lastPlace='';
 cv.addEventListener('pointermove',e=>{const [tx,ty,fx,fy]=tileAt(e);Object.assign(mouse,{x:tx,y:ty,fx,fy,in:true});
   if(dragPlace&&DRAGTOOLS.includes(G.tool)&&!ovEl&&lastPlace!==tx+','+ty&&reach(tx,ty)&&get(tx,ty)===AIR&&!(G.tool==='belt'&&belt(tx,ty))&&G.pack[G.tool]>0){lastPlace=tx+','+ty;place(tx,ty);}});
 cv.addEventListener('pointerleave',()=>{mouse.in=false;mouse.down=false;dragPlace=false;});
 cv.addEventListener('pointerdown',e=>{ac();stage.focus({preventScroll:true});const [tx,ty,fx,fy]=tileAt(e);Object.assign(mouse,{x:tx,y:ty,fx,fy,in:true});
   if(p.stun>0)return;
-  if(G.tool==='pick'){if(get(tx,ty)===AIR&&reach(tx,ty,4)&&pickup(tx,ty))return;if(p.riding)return;mouse.down=true;digT=0;cv.setPointerCapture(e.pointerId);return;}
-  if(G.tool==='dyn'){if(G.pack.dyn<=0){toast('No dynamite in your pack. Buy some at the General Store.',2600,true);return;}if(!reach(tx,ty,9)){toast('Too far to throw. Get closer.');return;}armDynamite(tx,ty);return;}
-  if(G.tool==='survey'){if(G.pack.survey<=0){toast('No survey kits. Buy some at the General Store.',2600,true);return;}if(!reach(tx,ty,9)){toast('Too far away. Get closer to survey there.');return;}surveyAt(tx,ty);return;}
-  const far=G.tool==='hoist'?6:REACH;
-  if(!reach(tx,ty,far)){toast('Too far away. Get closer to build there.');return;}
+  if(G.tool==='pick'){if(get(tx,ty)===AIR&&reach(tx,ty)&&pickup(tx,ty))return;if(p.riding)return;if(!reach(tx,ty)&&(solid(tx,ty)||obj(tx,ty)))once('reach','You can only dig the rock right next to you. Walk or climb closer.');mouse.down=true;digT=0;cv.setPointerCapture(e.pointerId);return;}
+  if(G.tool==='dyn'){if(G.pack.dyn<=0){toast('No dynamite in your pack. Buy some at the General Store.',2600,true);return;}if(!reach(tx,ty)){toast('Too far. Set the charge on rock within 2 blocks of you.');return;}armDynamite(tx,ty);return;}
+  if(G.tool==='survey'){if(G.pack.survey<=0){toast('No survey kits. Buy some at the General Store.',2600,true);return;}if(!reach(tx,ty)){toast('Too far away. Survey rock within 3 blocks of you.');return;}surveyAt(tx,ty);return;}
+  if(!reach(tx,ty)){toast(G.tool==='ladder'?'Too far away. Ladders go within 2 blocks of you.':'Too far away. Stand next to where you want to build.');return;}
   dragPlace=DRAGTOOLS.includes(G.tool);lastPlace=tx+','+ty;place(tx,ty);});
 cv.addEventListener('pointerup',()=>{mouse.down=false;dragPlace=false;});
 const fsB=$('#fsBtn'),isFs=()=>document.fullscreenElement===stage||stage.classList.contains('fill'),fsLabel=()=>{fsB.textContent=isFs()?'Exit full screen':'Full screen';};
@@ -1170,7 +1172,7 @@ function draw(){
   scans.forEach(s=>{g.strokeStyle=`rgba(255,210,94,${Math.min(1,s.life)})`;g.lineWidth=Math.max(2,P*.08);g.setLineDash([P*.3,P*.15]);g.strokeRect(s.x0*P,s.y0*P,s.a*P,s.b*P);g.setLineDash([]);g.fillStyle=`rgba(255,210,94,${Math.min(.15,s.life*.06)})`;g.fillRect(s.x0*P,s.y0*P,s.a*P,s.b*P);});
   if(mouse.in&&!ovEl){const mx=mouse.x,my=mouse.y,X=mx*P,Y=my*P,ok=reach(mx,my);g.lineWidth=Math.max(2,P*.07);const air=get(mx,my)===AIR&&!obj(mx,my);
     const ghost=(good,fn)=>{g.globalAlpha=.55;g.fillStyle=good?'#8fd16a':'#ff6a4a';fn();g.globalAlpha=1;};
-    if(G.tool==='pick'){if(reach(mx,my,4)&&(solid(mx,my)&&ok||obj(mx,my)||belt(mx,my)||rail(mx,my)||machineAt(mx,my))){const tooH=solid(mx,my)&&get(mx,my)!==BED&&hardOf(get(mx,my),my)>G.pick;g.strokeStyle=!solid(mx,my)?'#8fd16a':tooH?'#ff6a4a':'#ffd25e';const c=P*.26,q=2;g.beginPath();
+    if(G.tool==='pick'){if(reach(mx,my)&&(solid(mx,my)&&ok||obj(mx,my)||belt(mx,my)||rail(mx,my)||machineAt(mx,my))){const tooH=solid(mx,my)&&get(mx,my)!==BED&&hardOf(get(mx,my),my)>G.pick;g.strokeStyle=!solid(mx,my)?'#8fd16a':tooH?'#ff6a4a':'#ffd25e';const c=P*.26,q=2;g.beginPath();
       g.moveTo(X+q,Y+q+c);g.lineTo(X+q,Y+q);g.lineTo(X+q+c,Y+q);g.moveTo(X+P-q-c,Y+q);g.lineTo(X+P-q,Y+q);g.lineTo(X+P-q,Y+q+c);g.moveTo(X+P-q,Y+P-q-c);g.lineTo(X+P-q,Y+P-q);g.lineTo(X+P-q-c,Y+P-q);g.moveTo(X+q+c,Y+P-q);g.lineTo(X+q,Y+P-q);g.lineTo(X+q,Y+P-q-c);g.stroke();
       g.fillStyle=tooH?'rgba(255,106,74,.14)':'rgba(255,210,94,.1)';g.fillRect(X,Y,P,P);}}
     else if(G.tool==='ladder'){if(air)ghost(ok&&G.pack.ladder,()=>{g.fillRect(X+P*.18,Y,P*.11,P);g.fillRect(X+P*.71,Y,P*.11,P);g.fillRect(X+P*.18,Y+P*.45,P*.64,P*.09);});}
@@ -1180,11 +1182,11 @@ function draw(){
     else if(G.tool==='rail'){if(get(mx,my)===AIR&&!rail(mx,my))ghost(ok&&G.pack.rail&&solid(mx,my+1)&&!belt(mx,my),()=>g.fillRect(X,Y+P*.8,P,P*.2));}
     else if(G.tool==='cart'){ghost(ok&&G.pack.cart&&rail(mx,my),()=>g.fillRect(X+P*.05,Y+P*.4,P*.9,P*.5));}
     else if(G.tool==='pump'){if(air)ghost(ok&&G.pack.pump&&solid(mx,my+1),()=>g.fillRect(X+P*.12,Y+P*.3,P*.76,P*.7));}
-    else if(G.tool==='hoist'){if(my<=SURF[mx])ghost(reach(mx,my,6)&&G.pack.hoist,()=>{const base=SURF[mx]*P;g.fillRect(mx*P-P*.9,base-P*.15,P*2.8,P*.15);g.fillRect((mx+.5)*P-P*.1,base-5*P,P*.2,5*P);g.fillRect(mx*P+P*.2,(SURF[mx])*P,P*.6,P*3);});}
+    else if(G.tool==='hoist'){if(my<=SURF[mx])ghost(reach(mx,my)&&G.pack.hoist,()=>{const base=SURF[mx]*P;g.fillRect(mx*P-P*.9,base-P*.15,P*2.8,P*.15);g.fillRect((mx+.5)*P-P*.1,base-5*P,P*.2,5*P);g.fillRect(mx*P+P*.2,(SURF[mx])*P,P*.6,P*3);});}
     else if(G.tool==='lift'){if(get(mx,my)===AIR&&my>=SURF[mx]){const r=liftRange({x:mx,anchor:my});ghost(r&&ok&&G.pack.lift,()=>{if(r)g.fillRect(X+P*.1,(r[0]-2)*P,P*.8,(r[1]-r[0]+2)*P);else g.fillRect(X+2,Y+2,P-4,P-4);});}}
     else if(G.tool==='drill'){if(air)ghost(ok&&G.pack.drill&&solid(mx,my+1)&&my>SURF[mx],()=>{g.fillRect(X+P*.1,Y+P*.2,P*.8,P*.7);});}
     else if(G.tool==='lamp'){if(get(mx,my)===AIR&&my>SURF[mx])ghost(ok&&G.pack.lamp,()=>g.fillRect(X+P*.34,Y+P*.2,P*.32,P*.55));}
-    else if(G.tool==='dyn'){const far=!reach(mx,my,9),sh=blastShape(mx,my,mouse.fx,mouse.fy,false),bx=sh.dx<0?sh.x0-3:sh.dx>0?sh.x0+sh.w:sh.x0,by=sh.dy<0?sh.y0-3:sh.dy>0?sh.y0+sh.h:sh.y0;g.fillStyle=far?'rgba(160,160,160,.14)':'rgba(255,90,60,.2)';g.fillRect(sh.x0*P,sh.y0*P,sh.w*P,sh.h*P);g.strokeStyle=far?'rgba(190,190,190,.7)':'rgba(255,90,60,.95)';g.setLineDash([P*.25,P*.18]);g.strokeRect(sh.x0*P,sh.y0*P,sh.w*P,sh.h*P);
+    else if(G.tool==='dyn'){const far=!reach(mx,my),sh=blastShape(mx,my,mouse.fx,mouse.fy,false),bx=sh.dx<0?sh.x0-3:sh.dx>0?sh.x0+sh.w:sh.x0,by=sh.dy<0?sh.y0-3:sh.dy>0?sh.y0+sh.h:sh.y0;g.fillStyle=far?'rgba(160,160,160,.14)':'rgba(255,90,60,.2)';g.fillRect(sh.x0*P,sh.y0*P,sh.w*P,sh.h*P);g.strokeStyle=far?'rgba(190,190,190,.7)':'rgba(255,90,60,.95)';g.setLineDash([P*.25,P*.18]);g.strokeRect(sh.x0*P,sh.y0*P,sh.w*P,sh.h*P);
       g.strokeStyle='rgba(255,200,90,.6)';g.strokeRect(bx*P,by*P,(sh.dx?3:2)*P,(sh.dy?3:2)*P);g.setLineDash([]);
       const ax=(sh.x0+sh.w/2)*P,ay=(sh.y0+sh.h/2)*P,L=P*.7;g.fillStyle=far?'rgba(190,190,190,.8)':'rgba(255,220,150,.95)';g.beginPath();g.moveTo(ax+sh.dx*L,ay+sh.dy*L);g.lineTo(ax-sh.dx*L*.4-sh.dy*L*.6,ay-sh.dy*L*.4-sh.dx*L*.6);g.lineTo(ax-sh.dx*L*.4+sh.dy*L*.6,ay-sh.dy*L*.4+sh.dx*L*.6);g.fill();}
     else if(G.tool==='survey'){g.strokeStyle='rgba(255,210,94,.8)';g.setLineDash([P*.2,P*.15]);g.strokeRect(X-P*2,Y-P*2,P*5,P*5);g.setLineDash([]);}}
@@ -1280,6 +1282,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
