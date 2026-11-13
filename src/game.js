@@ -1110,6 +1110,13 @@ function drawCart(c){const P=tilePx,X=(c.x-.46)*P,Y=c.y*P,n=cnt(c.load);
   g.fillStyle='#24180f';g.beginPath();g.arc(X+P*.24,Y+P*.88,P*.11,0,7);g.arc(X+P*.68,Y+P*.88,P*.11,0,7);g.fill();}
 
 // On a ladder the miner turns to face it: we see his back, hands on the rails, climbing hand over hand.
+const BEAM=new Uint8Array(N),BEAMSPAN=12;
+const postTop=(x,y)=>obj(x,y)===TIMBER&&obj(x,y-1)!==TIMBER;
+function roofBeams(x0,x1,y0,y1){const xa=Math.max(1,x0-BEAMSPAN-1),xb=Math.min(COLS-2,x1+BEAMSPAN+1);
+  for(let y=Math.max(1,y0);y<=y1;y++){BEAM.fill(0,idx(xa,y),idx(xb,y)+1);let last=-1;
+    for(let x=xa;x<=xb;x++){if(W[idx(x,y)]!==AIR){last=-1;continue;}if(!postTop(x,y))continue;
+      if(last>=0&&x-last<=BEAMSPAN+1)for(let k=last+1;k<x;k++){if(!solid(k,y-1)||obj(k,y))continue;BEAM[idx(k,y)]=(!solid(k-1,y-1)||!solid(k+1,y-1))?2:1;}
+      last=x;}}}
 function drawClimber(){const P=tilePx,u=P/16,sw=Math.sin(p.y*8),cw=Math.cos(p.y*8);
   g.save();g.translate(p.x*P,p.y*P);if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
   const limb=(x1,y1,x2,y2,w,c)=>{g.strokeStyle=c;g.lineWidth=w*u;g.lineCap='round';g.beginPath();g.moveTo(x1*u,y1*u);g.lineTo(x2*u,y2*u);g.stroke();};
@@ -1163,6 +1170,7 @@ function draw(){
   building(STORE[0],5,'GENERAL STORE','#8a5a2b','#e8c27a','store');
   building(ASSAY[0],5,'ORE EXCHANGE','#6d4a2e','#cfd6d8','assay');
   building(BUNK[0],4.2,'BUNKHOUSE','#7a5a3a','#d9c9a0','bunk');
+  roofBeams(x0,x1,y0,y1);
   const glow=[];let fleckNear=false,quartzNear=false;const qLim=3+perk('eye');const e=Math.max(2,P*.07),e1=Math.max(1,P*.03);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=idx(x,y),t=W[i],X=x*P,Y=y*P,hh=hash(x,y);
     if(t){const ore=isHid(t),exp=exposed(x,y),hidden=ore&&!exp,shown=hidden?host(y):t;const s=S[i];const jx=s>.5?(Math.random()-.5)*s*P*.08:0;
@@ -1192,6 +1200,9 @@ function draw(){
       if(y>WT){g.fillStyle='rgba(60,110,150,.10)';g.fillRect(X,Y,P,P);}
       if(solid(x,y-1))g.drawImage(AOT,X,Y,P+1,P*.6);if(solid(x-1,y))g.drawImage(AOL,X,Y,P*.6,P+1);if(solid(x+1,y))g.drawImage(AOR,X+P*.4,Y,P*.6+1,P+1);if(solid(x,y+1))g.drawImage(AOB,X,Y+P*.5,P+1,P*.5+1);}
     const o=O[i];
+    if(BEAM[i]&&!t){g.fillStyle='#7b5230';g.fillRect(X,Y,P+1,P*.22);g.fillStyle='#a37444';g.fillRect(X,Y,P+1,P*.055);g.fillStyle='rgba(0,0,0,.34)';g.fillRect(X,Y+P*.17,P+1,P*.05);
+      if(hh%3===0){g.fillStyle='rgba(0,0,0,.22)';g.fillRect(X+P*((hh>>>4)%10)/12,Y+P*.07,P*.22,Math.max(1,P*.02));}
+      if(BEAM[i]===2){g.fillStyle='#4a2f18';g.fillRect(BEAM[i-1]?X+P-P*.06:X,Y,P*.06,P*.22);}}
     if(o===LADDER){g.fillStyle='#6f4a26';g.fillRect(X+P*.17,Y,P*.13,P+1);g.fillRect(X+P*.7,Y,P*.13,P+1);g.fillStyle='#b98550';g.fillRect(X+P*.19,Y,P*.05,P+1);g.fillRect(X+P*.72,Y,P*.05,P+1);
       for(let r=0;r<3;r++){const ry=Y+P*(.14+r*.33);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(X+P*.2,ry+P*.08,P*.6,P*.04);g.fillStyle='#a87643';g.fillRect(X+P*.14,ry,P*.72,P*.09);g.fillStyle='#d09a62';g.fillRect(X+P*.14,ry,P*.72,P*.03);}}
     else if(o===TIMBER&&(()=>{let a=y,b=y;while(obj(x,a-1)===TIMBER)a--;while(obj(x,b+1)===TIMBER)b++;return b-a>=2;})()){
@@ -1333,6 +1344,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
