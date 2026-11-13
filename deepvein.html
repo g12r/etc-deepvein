@@ -244,7 +244,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div><h3>Pip the pack rat</h3><p>Out of ladders or timber down a shaft? Press <b>R</b> and Pip runs some down from the store. It costs <b>double</b>, and what you cannot pay goes on your tab until your next sale.</p></div>
         <div><h3>Math pays</h3><p>Work out the weigh-in at the Ore Exchange and you get <b>50% more</b> for the whole sale, or <b>75% more</b> in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
         <div><h3>Deeper is richer</h3><p>Water seeps in below 90 ft, so you need <b>pumps</b>. Deep rock (125 ft) needs a steel pick and pays 2 nuggets a block. Granite (225 ft) needs a diamond pick and pays 3.</p></div>
-        <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone, 4 in deep rock. Past that it creaks and caves in. A timber post holds it up.</p></div>
+        <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone, 4 in deep rock. Past that it creaks and caves in. A timber post holds it up. Posts reach up to <b>4 blocks</b>; one 3 or 4 blocks tall takes 2 timbers.</p></div>
         <div><h3>Machines</h3><p>A <b>hoist</b> lifts ore to your strongbox. <b>Belts</b> and <b>carts</b> feed it. The <b>elevator</b> rides a whole shaft, and the <b>steam drill</b> bores tunnels by itself.</p></div>
       </div>
       <div class="keys"><span><kbd>A</kbd><kbd>D</kbd> walk</span><span><kbd>W</kbd><kbd>S</kbd> climb or ride</span><span><kbd>Space</kbd> jump</span><span><kbd>E</kbd> use</span><span><kbd>1</kbd>&#8211;<kbd>0</kbd> tools</span><span><kbd>M</kbd> journal and claim map</span><span>Hold and drag to place ladders, rails, belts and fill</span><span>Pickaxe on placed gear picks it back up</span></div>
@@ -613,7 +613,7 @@ function mathBox(hostEl,a,b,question,skipLabel,onDone){
 const SHOP=[
   {sec:'Supplies'},
   {id:'ladder',name:'Ladder',ds:'Climb into a shaft and back out again.',price:2,bulk:5,r:0},
-  {id:'timber',name:'Timber post',ds:'Holds up a tunnel roof. Needs a floor and a roof within 3 blocks.',price:3,bulk:5,r:0},
+  {id:'timber',name:'Timber post',ds:'Holds up a tunnel roof up to 4 blocks high. A post 3 or 4 blocks tall takes 2 timbers.',price:3,bulk:5,r:0},
   {id:'flask',name:'Oil flask',ds:'Refills your lamp by itself when it runs dry underground.',price:4,bulk:3,r:0},
   {id:'lamp',name:'Mine lantern',ds:'Hang it in a tunnel (L). It lights the spot for good, and your lamp burns no oil near it.',price:5,bulk:3,r:0},
   {id:'dyn',name:'Dynamite',ds:'A shaped charge: bores 2 blocks wide and 5 deep, straight away from you. Aim sideways for a tunnel, down for a shaft.',price:5,bulk:3,r:0},
@@ -911,9 +911,10 @@ const hoistAt=x=>hoists.find(h=>h.x===x);
 const liftAt=x=>lifts.find(l=>l.x===x);
 const machineAt=(x,y)=>drillAt(x,y)||pumpAt(x,y)||cartAt(x,y);
 function overlapsPlayer(tx,ty){return p.x+p.w/2>tx&&p.x-p.w/2<tx+1&&p.y>ty&&p.y-p.h<ty+1;}
+const timberCost=h=>h>2?2:1;
 function timberSpan(tx,ty){
-  if(get(tx,ty)!==AIR||obj(tx,ty))return null;let fy=ty;while(fy<ROWS-1&&get(tx,fy+1)===AIR&&fy-ty<3)fy++;if(!solid(tx,fy+1))return null;
-  let top=fy;while(top>0&&get(tx,top-1)===AIR&&fy-top<3)top--;if(!solid(tx,top-1)||fy-top>2)return null;
+  if(get(tx,ty)!==AIR||obj(tx,ty))return null;let fy=ty;while(fy<ROWS-1&&get(tx,fy+1)===AIR&&fy-ty<4)fy++;if(!solid(tx,fy+1))return null;
+  let top=fy;while(top>0&&get(tx,top-1)===AIR&&fy-top<4)top--;if(!solid(tx,top-1)||fy-top>3)return null;
   for(let y=top;y<=fy;y++)if(obj(tx,y)||drillAt(tx,y)||pumpAt(tx,y))return null;
   if(top<=SURF[tx])return null;return [top,fy];}
 function liftRange(L){
@@ -927,8 +928,9 @@ function place(tx,ty){
   const tool=G.tool,have=G.pack[tool];
   const need=name=>{toast(`Out of ${name}. Buy more at the General Store.`,2600,true);};
   if(tool==='ladder'){if(!have)return need('ladders');if(get(tx,ty)!==AIR||obj(tx,ty)||machineAt(tx,ty))return;O[idx(tx,ty)]=LADDER;G.pack.ladder--;SFX.place();hud();return;}
-  if(tool==='timber'){if(!have)return need('timber');const sp=timberSpan(tx,ty);if(!sp){toast('A timber post needs a floor under it and a roof no more than 3 blocks up.');return;}
-    for(let y=sp[0];y<=sp[1];y++)O[idx(tx,y)]=TIMBER;G.pack.timber--;SFX.place();flag('timber');hud();return;}
+  if(tool==='timber'){if(!have)return need('timber');const sp=timberSpan(tx,ty);if(!sp){toast('A timber post needs a floor under it and a roof no more than 4 blocks up.');return;}
+    const tc=timberCost(sp[1]-sp[0]+1);if(G.pack.timber<tc){toast('A post 3 or 4 blocks tall takes 2 timbers. You have 1.',3200,true);return;}
+    for(let y=sp[0];y<=sp[1];y++)O[idx(tx,y)]=TIMBER;G.pack.timber-=tc;if(tc>1)once('tallpost','That is a tall post: two timbers spliced together with iron bands.');SFX.place();flag('timber');hud();return;}
   if(tool==='fill'){if(!have){toast('No fill rock. Every block you dig gives you some.',2600,true);return;}
     if(get(tx,ty)!==AIR||obj(tx,ty)||belt(tx,ty)||rail(tx,ty)||machineAt(tx,ty)||ty<SURF[tx]-1)return;if(overlapsPlayer(tx,ty)){toast("You can't fill the spot you're standing in.");return;}
     setT(tx,ty,RUB);WA[idx(tx,ty)]=0;G.pack.fill--;SFX.place();burst(tx,ty,RUB,4,2);hud();if(ty>WT)once('seal','Packed fill rock does not leak water. Use it to seal off wet walls.');return;}
@@ -964,7 +966,7 @@ function pickup(tx,ty){
   else if(belt(tx,ty)){DIR[idx(tx,ty)]=0;G.pack.belt++;}
   else if(rail(tx,ty)){RAIL[idx(tx,ty)]=0;G.pack.rail++;}
   else if(o===LADDER){O[idx(tx,ty)]=0;G.pack.ladder++;}
-  else if(o===TIMBER){let y=ty;while(obj(tx,y-1)===TIMBER)y--;while(obj(tx,y)===TIMBER){O[idx(tx,y)]=0;y++;}G.pack.timber++;}
+  else if(o===TIMBER){let y=ty,n=0;while(obj(tx,y-1)===TIMBER)y--;while(obj(tx,y)===TIMBER){O[idx(tx,y)]=0;y++;n++;}G.pack.timber+=timberCost(n);}
   else{const h=hoistAt(tx);if(h&&ty<SURF[tx]&&ty>=SURF[tx]-5){hoists.splice(hoists.indexOf(h),1);G.pack.hoist++;pour(h.load,G.stock);}
     else{const L=liftAt(tx);if(L&&p.onLift!==L&&ty>=L.y-2&&ty<=L.y){lifts.splice(lifts.indexOf(L),1);G.pack.lift++;}else return false;}}
   SFX.place();hud();return true;}
@@ -1419,6 +1421,15 @@ function draw(){
     const o=O[i];
     if(o===LADDER){g.fillStyle='#6f4a26';g.fillRect(X+P*.17,Y,P*.13,P+1);g.fillRect(X+P*.7,Y,P*.13,P+1);g.fillStyle='#b98550';g.fillRect(X+P*.19,Y,P*.05,P+1);g.fillRect(X+P*.72,Y,P*.05,P+1);
       for(let r=0;r<3;r++){const ry=Y+P*(.14+r*.33);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(X+P*.2,ry+P*.08,P*.6,P*.04);g.fillStyle='#a87643';g.fillRect(X+P*.14,ry,P*.72,P*.09);g.fillStyle='#d09a62';g.fillRect(X+P*.14,ry,P*.72,P*.03);}}
+    else if(o===TIMBER&&(()=>{let a=y,b=y;while(obj(x,a-1)===TIMBER)a--;while(obj(x,b+1)===TIMBER)b++;return b-a>=2;})()){
+      const top=obj(x,y-1)!==TIMBER,bot=obj(x,y+1)!==TIMBER;let a=y;while(obj(x,a-1)===TIMBER)a--;
+      g.strokeStyle='#4a2f18';g.lineWidth=Math.max(1.5,P*.07);g.beginPath();if((y-a)%2){g.moveTo(X+P*.3,Y);g.lineTo(X+P*.7,Y+P);}else{g.moveTo(X+P*.7,Y);g.lineTo(X+P*.3,Y+P);}g.stroke();
+      [.19,.59].forEach(ox=>{g.fillStyle='#5e3c20';g.fillRect(X+P*ox,Y,P*.22,P+1);g.fillStyle='#8a5c34';g.fillRect(X+P*(ox+.02),Y,P*.08,P+1);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(X+P*(ox+.16),Y,P*.06,P+1);});
+      g.fillStyle='#2f3237';g.fillRect(X+P*.15,Y+P*.44,P*.7,P*.1);g.fillStyle='#6b7078';g.fillRect(X+P*.15,Y+P*.44,P*.7,P*.03);g.fillStyle='#c9a33a';g.fillRect(X+P*.27,Y+P*.47,P*.04,P*.04);g.fillRect(X+P*.67,Y+P*.47,P*.04,P*.04);
+      if(bot){g.fillStyle='#4a2f18';g.fillRect(X+P*.04,Y+P*.86,P*.92,P*.14);g.fillStyle='rgba(255,220,170,.18)';g.fillRect(X+P*.04,Y+P*.86,P*.92,P*.03);}
+      if(top){g.strokeStyle='#4a2f18';g.lineWidth=P*.11;g.beginPath();g.moveTo(X+P*.2,Y+P*.8);g.lineTo(X-P*.3,Y+P*.26);g.moveTo(X+P*.8,Y+P*.8);g.lineTo(X+P*1.3,Y+P*.26);g.stroke();
+        g.fillStyle='#6f4827';g.fillRect(X-P*.52,Y,P*2.04,P*.32);g.fillStyle='#a37444';g.fillRect(X-P*.52,Y,P*2.04,P*.07);g.fillStyle='rgba(0,0,0,.34)';g.fillRect(X-P*.52,Y+P*.26,P*2.04,P*.06);
+        g.fillStyle='#2f3237';g.fillRect(X+P*.16,Y,P*.1,P*.32);g.fillRect(X+P*.74,Y,P*.1,P*.32);g.fillStyle='#3d2713';g.fillRect(X-P*.52,Y,P*.06,P*.32);g.fillRect(X+P*1.46,Y,P*.06,P*.32);}}
     else if(o===TIMBER){g.fillStyle='#6a4526';g.fillRect(X+P*.34,Y,P*.32,P+1);g.fillStyle='#8f6239';g.fillRect(X+P*.36,Y,P*.11,P+1);g.fillStyle='rgba(0,0,0,.28)';g.fillRect(X+P*.57,Y,P*.09,P+1);
       g.fillStyle='rgba(0,0,0,.22)';g.fillRect(X+P*.42,Y+P*((hh%5)/8+.1),P*.03,P*.3);g.fillRect(X+P*.5,Y+P*((hh%7)/12+.2),P*.03,P*.24);
       if(obj(x,y-1)!==TIMBER){g.strokeStyle='#5a3a1f';g.lineWidth=P*.09;g.beginPath();g.moveTo(X+P*.36,Y+P*.62);g.lineTo(X-P*.1,Y+P*.2);g.moveTo(X+P*.64,Y+P*.62);g.lineTo(X+P*1.1,Y+P*.2);g.stroke();
@@ -1442,7 +1453,7 @@ function draw(){
       g.moveTo(X+q,Y+q+c);g.lineTo(X+q,Y+q);g.lineTo(X+q+c,Y+q);g.moveTo(X+P-q-c,Y+q);g.lineTo(X+P-q,Y+q);g.lineTo(X+P-q,Y+q+c);g.moveTo(X+P-q,Y+P-q-c);g.lineTo(X+P-q,Y+P-q);g.lineTo(X+P-q-c,Y+P-q);g.moveTo(X+q+c,Y+P-q);g.lineTo(X+q,Y+P-q);g.lineTo(X+q,Y+P-q-c);g.stroke();
       g.fillStyle=tooH?'rgba(255,106,74,.14)':'rgba(255,210,94,.1)';g.fillRect(X,Y,P,P);}}
     else if(G.tool==='ladder'){if(air)ghost(ok&&G.pack.ladder,()=>{g.fillRect(X+P*.18,Y,P*.11,P);g.fillRect(X+P*.71,Y,P*.11,P);g.fillRect(X+P*.18,Y+P*.45,P*.64,P*.09);});}
-    else if(G.tool==='timber'){if(air){const sp=timberSpan(mx,my);ghost(sp&&ok&&G.pack.timber,()=>{if(sp){g.fillRect(X+P*.36,sp[0]*P,P*.28,(sp[1]-sp[0]+1)*P);g.fillRect(X-P*.35,sp[0]*P,P*1.7,P*.24);}else g.fillRect(X+P*.36,Y,P*.28,P);});}}
+    else if(G.tool==='timber'){if(air){const sp=timberSpan(mx,my);const th=sp?sp[1]-sp[0]+1:1;ghost(sp&&ok&&G.pack.timber>=timberCost(th),()=>{if(sp){if(th>2){g.fillRect(X+P*.2,sp[0]*P,P*.2,th*P);g.fillRect(X+P*.6,sp[0]*P,P*.2,th*P);g.fillRect(X-P*.5,sp[0]*P,P*2,P*.3);}else{g.fillRect(X+P*.36,sp[0]*P,P*.28,th*P);g.fillRect(X-P*.35,sp[0]*P,P*1.7,P*.24);}}else g.fillRect(X+P*.36,Y,P*.28,P);});if(sp&&th>2){g.fillStyle='#fff';g.font=`700 ${Math.round(P*.34)}px "Barlow Condensed",sans-serif`;g.textAlign='left';g.fillText('2 timbers',X+P*1.2,sp[0]*P+P*.7);}}}
     else if(G.tool==='fill'){if(air)ghost(ok&&G.pack.fill&&!overlapsPlayer(mx,my)&&my>=SURF[mx]-1,()=>g.fillRect(X+2,Y+2,P-4,P-4));}
     else if(G.tool==='belt'){if(get(mx,my)===AIR)ghost(ok&&(G.pack.belt||belt(mx,my))&&solid(mx,my+1)&&!rail(mx,my),()=>{g.fillRect(X,Y+P*.7,P,P*.3);const d=belt(mx,my)?-DIR[idx(mx,my)]:p.face;g.beginPath();g.moveTo(X+P*.5-d*P*.25,Y+P*.3);g.lineTo(X+P*.5+d*P*.25,Y+P*.45);g.lineTo(X+P*.5-d*P*.25,Y+P*.6);g.fill();});}
     else if(G.tool==='rail'){if(get(mx,my)===AIR&&!rail(mx,my))ghost(ok&&G.pack.rail&&solid(mx,my+1)&&!belt(mx,my),()=>g.fillRect(X,Y+P*.8,P,P*.2));}
@@ -1548,6 +1559,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
