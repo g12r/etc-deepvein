@@ -156,14 +156,14 @@ function freshWorld(oldS){
 }
 function fresh(){
   freshWorld();
-  G={v:3,finds:{},money:15,earned:0,cap:6,pick:2,sack:bag(),pack:{ladder:8,timber:2,dyn:0,fill:0,survey:0,belt:0,rail:0,pump:0,hoist:0,cart:0,lift:0,drill:0,flask:0,lamp:0},stock:bag(),
+  G={v:3,debt:0,pending:[],finds:{},money:15,earned:0,cap:6,pick:2,sack:bag(),pack:{ladder:8,timber:2,dyn:0,fill:0,survey:0,belt:0,rail:0,pump:0,hoist:0,cart:0,lift:0,drill:0,flask:0,lamp:0},stock:bag(),
      lantern:4.8,tool:'pick',price:6,priceNext:4+Math.floor(Math.random()*5),f:{},seen:{},contract:null,offers:[],done:0,day:1,oil:100,shift:300,carbide:false,perks:{},perkPicks:0,rowPerks:0,
      geodes:[0,0,0],combo:0,chests:0,today:newToday(),trophy:{},deal:null,maxDepth:0};
   G.offers=newOffers();G.deal=newDeal();SEEN=new Uint8Array(N);seedExtras();hpAll();
   p={x:SPAWN,y:SURF[9]};hoists=[];lifts=[];drills=[];pumps=[];carts=[];items=[];lamps=[];
 }
 function resetRuntime(){Object.assign(p,{w:.66,h:1.6,vx:0,vy:0,ground:false,face:p.face||1,swing:0,climb:false,stun:0,onLift:null,riding:null});
-  S=new Float32Array(N);UNS=new Float32Array(N);parts=[];floats=[];lights=[];falling=[];scans=[];cam.x=p.x-VIEW/2;cam.y=p.y-7;}
+  S=new Float32Array(N);UNS=new Float32Array(N);parts=[];floats=[];lights=[];falling=[];scans=[];rats=[];cam.x=p.x-VIEW/2;cam.y=p.y-7;}
 
 /* ---------- save / load ---------- */
 const enc=u=>{let s='';for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s);};
@@ -187,7 +187,7 @@ function load(){try{let raw=localStorage.getItem(SAVE_KEY),src=5;if(!raw){raw=lo
   p={x:d.p.x,y:d.p.y,face:d.p.face||1};lamps=d.lamps||[];
   hoists=d.hoists.map(h=>newHoist(h.x));lifts=d.lifts.map(l=>({x:l.x,anchor:l.anchor,y:l.y,target:null}));drills=d.drills.map(x=>({...x,t:0}));pumps=d.pumps||[];
   carts=(d.carts||[]).map(c=>({...c,load:Object.assign(bag(),c.load),vx:0}));items=d.items.map(i=>({...i,vy:0,vx:0}));
-  G.sack=Object.assign(bag(),G.sack);G.stock=Object.assign(bag(),G.stock);G.finds=G.finds||{};
+  G.sack=Object.assign(bag(),G.sack);G.stock=Object.assign(bag(),G.stock);G.finds=G.finds||{};G.debt=G.debt||0;(G.pending||[]).forEach(c=>{G.pack[c.id]+=c.n;});G.pending=[];
   if(src===3||!G.v)migrate();else if(!big)seedExtras(true);
   G.v=3;hpAll();return true;}catch(e){return false;}}
 // A claim saved by Deepvein 1.0 keeps everything it had and gets the new systems added on top.
@@ -200,7 +200,7 @@ function migrate(){const r=rankIdx();
 function newHoist(x){return {x,y:SURF[x]-1.3,state:'down',load:bag(),idle:0};}
 function start(fromSave){migrated=false;grown=false;if(!(fromSave&&load()))fresh();resetRuntime();calcProx();proxDirty=false;closeOverlay();setTool(G.tool||'pick');hud();todo();renderRanks();renderMap();
   if(migrated||grown){save();setTimeout(()=>welcome(migrated?true:'grow'),500);}else if(!G.seen.intro){G.seen.intro=1;setTimeout(()=>welcome(false),500);}}
-function welcome(mig){const li=mig==='grow'?['Your tunnels, gear, cash, rank and perks are all still here.','<b>The claim is much bigger now.</b> It runs far to the east and goes down to 365 ft. The Mother Lode turned out to lie deeper than the old maps said.','<b>There is more than gold.</b> Look for copper and silver, rubies down in the granite, and fossils for your museum collection (see your journal).','<b>Math pays more.</b> Work out the weigh-in at the Assay Office for a big cash bonus, and a bigger one if you are fast.','<b>Dynamite is a shaped charge now.</b> It bores 2 blocks wide, straight away from you.']:mig?['Your tunnels, gear, cash and rank are all still here.','<b>Days and lamp oil:</b> your lamp burns about 5 minutes underground. Sleep at the new Bunkhouse (far right) for a full lamp and a new day.','<b>Gold prices change every morning.</b> Lock ore in the strongbox and sell on a good day.','<b>Contracts:</b> pick one of three at the Assay Office each day.','<b>Geodes</b> are hidden in the rock. Crack them at the Assay Office for crystals.','<b>Perks:</b> you choose one for every rank you have earned, and one for every times table you master.','<b>The Mother Lode</b> is buried at the bottom of the claim. Old caches hold the map. Press M for your journal.']
+function welcome(mig){const li=mig==='grow'?['Your tunnels, gear, cash, rank and perks are all still here.','<b>The claim is much bigger now.</b> It runs far to the east and goes down to 365 ft. The Mother Lode turned out to lie deeper than the old maps said.','<b>There is more than gold.</b> Look for copper and silver, rubies down in the granite, and fossils for your museum collection (see your journal).','<b>Math pays more.</b> Work out the weigh-in at the Assay Office for 50% more, or 75% more if you are fast.','<b>Dynamite is a shaped charge now.</b> It bores 2 blocks wide, straight away from you.']:mig?['Your tunnels, gear, cash and rank are all still here.','<b>Days and lamp oil:</b> your lamp burns about 5 minutes underground. Sleep at the new Bunkhouse (far right) for a full lamp and a new day.','<b>Gold prices change every morning.</b> Lock ore in the strongbox and sell on a good day.','<b>Contracts:</b> pick one of three at the Assay Office each day.','<b>Geodes</b> are hidden in the rock. Crack them at the Assay Office for crystals.','<b>Perks:</b> you choose one for every rank you have earned, and one for every times table you master.','<b>The Mother Lode</b> is buried at the bottom of the claim. Old caches hold the map. Press M for your journal.']
     :['Somewhere at the bottom of this claim lies the <b>Mother Lode</b>. McGraw\'s crew next door is digging for it too.','Your lamp holds <b>one day of oil</b>. Dig, sell your gold at the Assay Office, then sleep at the Bunkhouse.','<b>White quartz streaks</b> in the rock point toward gold. Brighter means closer.','You start with <b>8 ladders and 2 timber posts</b>. Press 2 for ladders, and hold the mouse to dig.'];
   const ov=overlay(`<div class="eyebrow">${mig?'Your claim came with you':'Day 1 on Claim 7'}</div><h3>${mig==='grow'?'Claim 7 just got bigger':mig?'Welcome to Deepvein 2.0':'Find the Mother Lode'}</h3><ul class="news">${li.map(t=>'<li>'+t+'</li>').join('')}</ul><div class="foot"><button class="btn" data-close>${mig?'Back to work':'Start digging'}</button></div>`);ov.querySelector('[data-close]').addEventListener('click',closeOverlay);}
 
@@ -213,7 +213,7 @@ const load_=()=>cnt(G.sack);
 const oilEl=$('#hOil'),goalEl=$('#hGoal');
 function hud(){
   if(!G)return;
-  $('#hMoney').textContent='$'+G.money;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
+  $('#hMoney').textContent='$'+G.money+(G.debt?' (owe $'+G.debt+')':'');const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   $('#hSack').innerHTML=`${load_()}/${CAP()} ${OKEYS.filter(k=>G.sack[k]).map(k=>`<span style="color:${ORE[KT[k]].c}">${k==='gem'||k==='ruby'?'◆':'●'}${G.sack[k]}</span>`).join(' ')}${gd?` <span class="ge">⬟${gd}</span>`:''}`;
   $('#hSackChip').classList.toggle('full',load_()>=CAP());
   $('#hHaul').hidden=!cnt(G.stock);$('#hHaulN').textContent=cnt(G.stock);
@@ -247,7 +247,7 @@ const TODO=[['deep','Dig a shaft down 40 feet. Hold the mouse to dig. Place ladd
   ['lode','Find the Mother Lode at the very bottom of the claim, before McGraw does.','Find the Mother Lode']];
 function todo(){const ol=$('#todo');let first=true,goal='';ol.innerHTML=TODO.map(([k,t,sh])=>{const d=G.f[k];let c=d?'done':'';if(!d&&first){c='now';first=false;goal=sh;}return `<li class="${c}">${t}</li>`;}).join('');goalEl.textContent=goal?'Next: '+goal:'You found the Mother Lode. Keep digging!';}
 function flag(k){if(!G.f[k]){G.f[k]=true;todo();}}
-function earn(cash){G.money+=cash;const before=rankIdx();G.earned+=cash;G.today.earned+=cash;const after=rankIdx();
+function earn(cash){G.money+=cash;if(G.debt>0){const pay=Math.min(G.money,G.debt);G.money-=pay;G.debt-=pay;const left=G.debt;setTimeout(()=>toast(left?`$${pay} went to your tab at the store. You still owe $${left}.`:`$${pay} paid off your tab at the store.`,3800),2200);}const before=rankIdx();G.earned+=cash;G.today.earned+=cash;const after=rankIdx();
   if(after>before){G.perkPicks+=after-before;if(after===RANKS.length-1)award('baron');setTimeout(()=>{toast(after===RANKS.length-1?`You are now the GOLD BARON of Claim 7!`:`Promoted to ${RANKS[after][0]}! New gear is for sale, and you get to choose a perk.`,5200);SFX.gem();SFX.coins();for(let i=0;i<80;i++)parts.push({x:p.x,y:p.y-2,vx:(Math.random()-.5)*14,vy:-Math.random()*12,life:1.4,c:['#ffd25e','#6be3e8','#ff8a5c','#fff3b0'][i%4],s:.18,fire:true});},700);perkAt=time+2.5;}
   renderRanks();hud();if(G.contract&&G.contract.k==='bigday')progress('bigday',G.today.earned);}
 function progress(kind,amt){const c=G.contract;if(!c||c.k!==kind)return;const before=c.prog;c.prog=(kind==='depth'||kind==='bigday')?Math.max(c.prog,amt):c.prog+amt;if(c.prog===before)return;
@@ -401,7 +401,7 @@ function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]
 function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+(G.stock[k]||0));const all=cnt(tot),P=G.price,tr=trust(),sackN=load_();
   const fc=G.priceNext>P?'▲ The telegraph says gold goes UP tomorrow':G.priceNext<P?'▼ The telegraph says gold goes DOWN tomorrow':'■ Gold should hold steady tomorrow';
   const list=b=>OKEYS.filter(k=>b[k]).map(k=>`<b>${b[k]}</b> ${b[k]===1?ORE[KT[k]].one:ORE[KT[k]].n}`).join(', ')||'nothing';
-  let h=`<p class="sub">Today: copper <span class="price">$2</span>, silver <span class="price">$4</span>, gold <span class="price">$${P}</span>, gems <span class="price">$15</span>, rubies <span class="price">$30</span>.<br><span class="fc">${fc}.</span></p>
+  let h=`<p class="sub">Today: copper <span class="price">$2</span>, silver <span class="price">$4</span>, gold <span class="price">$${P}</span>, gems <span class="price">$15</span>, rubies <span class="price">$30</span>.<br><span class="fc">${fc}.</span>${tr>1.001?`<br>Assayer's trust: <span class="price">+${Math.round((tr-1)*100)}%</span> on everything.`:''}</p>
     <p class="sub">In your sack: ${list(G.sack)}. In the strongbox: ${list(G.stock)}.</p>`;
   if(!all){body.innerHTML=h+'<p class="sub">"Bring me some ore, prospector."</p>';return;}
   const base=Math.round(OKEYS.reduce((n,k)=>n+tot[k]*valOf(k),0)*tr);
@@ -410,8 +410,8 @@ function assaySell(body){const tot=bag();OKEYS.forEach(k=>tot[k]=(G.sack[k]||0)+
   const hostEl=body.querySelector('[data-math]');
   const pay=mult=>{const extra=Math.round(base*mult),cash=base+extra;G.sack=bag();G.stock=bag();SFX.coins();flag('sold');award('sale1');earn(cash);OKEYS.forEach(k=>{if(tot[k])progress(k==='gem'||k==='ruby'?'gems':k,tot[k]);});save();if(keep)keep.remove();return [cash,extra];};
   let mk=null;['copper','silver','gold'].forEach(k=>{if(tot[k]&&(!mk||Math.min(tot[k],10)*valOf(k)>Math.min(tot[mk],10)*valOf(mk)))mk=k;});
-  let a,b,q;if(mk){a=Math.min(tot[mk],10);b=valOf(mk);q=`The weigh-in: ${a} ${mk} at $${b} each. Work it out and the assayer adds a <b>$${Math.round(base*.5)} bonus</b>. Under 3 seconds: <b>$${Math.round(base*.75)}</b>.`;}
-  else{[a,b]=pickFact();q=`The assayer tests you before he buys gems. Get it right and he adds a <b>$${Math.round(base*.5)} bonus</b>. Under 3 seconds: <b>$${Math.round(base*.75)}</b>.`;}
+  let a,b,q;if(mk){a=Math.min(tot[mk],10);b=valOf(mk);q=`The weigh-in: ${a} ${mk} at $${b} each. Work it out and the assayer pays <b>50% more</b> for the whole lot ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;}
+  else{[a,b]=pickFact();q=`The assayer tests you before he buys gems. Get it right and he pays <b>50% more</b> ($${Math.round(base*.5)} extra). Under 3 seconds: <b>75% more</b>.`;}
   mathBox(hostEl,a,b,q,`Just sell for $${base}`,(ok,secs,vd)=>{
     const [cash,extra]=pay(ok?(secs<3?.75:.5):0);
     if(ok)vd.textContent+=` Paid $${cash}. That is $${extra} more than just selling!`;else if(ok===null){vd.className='verdict ok';vd.textContent=`Paid $${cash}. Doing the math would have paid $${base+Math.round(base*.5)}.`;}else vd.innerHTML+=` Paid $${cash}, with no bonus this time.`;});}
@@ -625,6 +625,70 @@ function pickup(tx,ty){
   else{const h=hoistAt(tx);if(h&&ty<SURF[tx]&&ty>=SURF[tx]-5){hoists.splice(hoists.indexOf(h),1);G.pack.hoist++;pour(h.load,G.stock);}
     else{const L=liftAt(tx);if(L&&p.onLift!==L&&ty>=L.y-2&&ty<=L.y){lifts.splice(lifts.indexOf(L),1);G.pack.lift++;}else return false;}}
   SFX.place();hud();return true;}
+/* ---------- Pip the pack rat: emergency ladders and timber, at double price, on the store's tab ---------- */
+let rats=[];
+const RATGOODS=[{id:'ladder',q:5,name:'ladders'},{id:'timber',q:3,name:'timber posts'}],TABMAX=60;
+SFX.squeak=()=>{tone(1900,.07,.1,'sine',2700);setTimeout(()=>tone(2300,.06,.08,'sine',3100),90);};
+const ratHome=()=>[4,SURF[4]-1];
+const underground=()=>p.y>SURF[clamp(Math.floor(p.x),0,COLS-1)]+3;
+// Pip keeps to floors, walls and ladders where he can
+function ratPath(sx,sy,tx,ty){if(!inB(sx,sy)||!inB(tx,ty))return null;const goal=idx(tx,ty),start=idx(sx,sy);
+  // floors are cheapest, then walls and ladders, then ceilings; open air is a last resort
+  const cost=(x,y,j)=>solid(x,y+1)?1:(O[j]||solid(x-1,y)||solid(x+1,y))?1.5:solid(x,y-1)?4:8;
+  const dist=new Float32Array(N).fill(1e9),prev=new Int32Array(N).fill(-1),q=[start];dist[start]=0;prev[start]=start;
+  for(let h=0;h<q.length&&h<200000;h++){const i=q[h],x=i%COLS,y=(i-x)/COLS,d=dist[i];
+    for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+a,ny=y+b;if(!inB(nx,ny))continue;const j=idx(nx,ny);if(j!==goal&&W[j]!==AIR)continue;
+      const nd=d+cost(nx,ny,j);if(nd<dist[j]-1e-6){dist[j]=nd;prev[j]=i;q.push(j);}}}
+  if(prev[goal]<0)return null;const out=[];for(let i=goal,n=0;n<N;i=prev[i],n++){out.push([i%COLS,Math.floor(i/COLS)]);if(prev[i]===i)break;}return out.reverse();}
+function spawnRat(cargo){const [hx,hy]=ratHome(),tx=Math.floor(p.x),ty=Math.floor(p.y-.5);const path=ratPath(hx,hy,tx,ty)||[[tx,ty]];
+  rats.push({path,i:0,f:0,x:path[0][0]+.5,y:path[0][1]+.5,state:'down',cargo,dx:1,dy:0,wait:0,tries:0});SFX.squeak();}
+function updateRats(dt){
+  for(let k=rats.length-1;k>=0;k--){const r=rats[k];if(r.wait>0){r.wait-=dt;continue;}
+    r.f+=dt*(r.state==='down'?11:13);while(r.f>=1&&r.i<r.path.length-1){r.f-=1;r.i++;}
+    const a=r.path[r.i],end=r.i>=r.path.length-1,b=end?a:r.path[r.i+1],t=end?0:r.f;
+    r.x=a[0]+.5+(b[0]-a[0])*t;r.y=a[1]+.5+(b[1]-a[1])*t;if(!end){r.dx=b[0]-a[0]||r.dx;r.dy=b[1]-a[1];continue;}
+    r.f=0;r.dy=0;
+    if(r.state==='down'){
+      if(Math.hypot(r.x-p.x,r.y-(p.y-.6))>1.7&&r.tries<8){r.tries++;const np=ratPath(a[0],a[1],Math.floor(p.x),Math.floor(p.y-.5));if(np&&np.length>1){r.path=np;r.i=0;continue;}}
+      const c=r.cargo;G.pack[c.id]+=c.n;G.pending=[];float(p.x,p.y-2.3,`+${c.n} ${c.name}`,'#f0e6d6');SFX.place();SFX.squeak();hud();save();
+      r.cargo=null;r.state='up';r.wait=.8;r.dx=-r.dx;const [hx,hy]=ratHome();r.path=ratPath(a[0],a[1],hx,hy)||[a];r.i=0;}
+    else rats.splice(k,1);}
+  const show=underground();if(ratB.hidden===show)ratB.hidden=!show;
+  if(show&&G.pack.ladder===0&&!rats.length)once('pip','Out of ladders? Press R to call Pip the pack rat. He runs supplies down to you, at double price.');}
+function drawRat(r){const P=tilePx,u=P/16,onFloor=!r.dy&&solid(Math.floor(r.x),Math.floor(r.y)+1);
+  g.save();g.translate(r.x*P,(r.y+(onFloor?.3:0))*P);if(r.dy)g.rotate(r.dy>0?Math.PI/2:-Math.PI/2);else g.scale(r.dx<0?-1:1,1);
+  const run=r.wait>0?0:1,ph=time*34;
+  g.strokeStyle='#e9a3ac';g.lineWidth=Math.max(1,u*.9);g.lineCap='round';g.beginPath();g.moveTo(-4.6*u,.6*u);g.quadraticCurveTo(-8*u,(1.6+Math.sin(time*12)*1.2)*u,-10.5*u,(-2+Math.cos(time*12)*1.4)*u);g.stroke();
+  g.fillStyle='#6f665c';for(let k=0;k<4;k++){const lx=(-3.2+k*2.1)*u,sw=run*Math.sin(ph+k*1.7)*1.1*u;g.fillRect(lx+sw,2.2*u,1.2*u,2*u);}
+  g.fillStyle='#4f4841';g.beginPath();g.ellipse(0,0,5.9*u,3.8*u,0,0,7);g.fill();
+  g.fillStyle='#8d8378';g.beginPath();g.ellipse(0,0,5.4*u,3.3*u,0,0,7);g.fill();
+  g.fillStyle='#b9b0a4';g.beginPath();g.ellipse(.4*u,1.3*u,3.9*u,1.7*u,0,0,7);g.fill();
+  // the pouch: full on the way down, flat on the way back
+  if(r.cargo){g.fillStyle='#5d4a2a';g.beginPath();g.ellipse(-1.2*u,-3.6*u,4.1*u,3.5*u,0,0,7);g.fill();g.fillStyle='#b08f5a';g.beginPath();g.ellipse(-1.2*u,-3.6*u,3.6*u,3*u,0,0,7);g.fill();
+    g.fillStyle='#cdb07a';g.beginPath();g.ellipse(-2.2*u,-4.6*u,1.4*u,1*u,-.4,0,7);g.fill();
+    g.fillStyle=r.cargo.id==='ladder'?'#a87643':'#7b5230';g.fillRect(-3.4*u,-8.6*u,1*u,3.4*u);g.fillRect(-.6*u,-8.9*u,1*u,3.6*u);if(r.cargo.id==='ladder'){g.fillRect(-3.4*u,-7.9*u,3.8*u,.8*u);g.fillRect(-3.4*u,-6.4*u,3.8*u,.8*u);}}
+  else{g.fillStyle='#5d4a2a';g.beginPath();g.ellipse(-1.2*u,-2.9*u,3*u,1.5*u,0,0,7);g.fill();g.fillStyle='#b08f5a';g.beginPath();g.ellipse(-1.2*u,-2.9*u,2.6*u,1.1*u,0,0,7);g.fill();}
+  g.strokeStyle='#5d4a2a';g.lineWidth=Math.max(1,u*.7);g.beginPath();g.moveTo(-2.6*u,-1.6*u);g.lineTo(-2*u,3*u);g.stroke();
+  // head, ears, face
+  g.fillStyle='#4f4841';g.beginPath();g.arc(5.2*u,-.5*u,3.3*u,0,7);g.fill();g.fillStyle='#8d8378';g.beginPath();g.arc(5.2*u,-.5*u,2.9*u,0,7);g.fill();
+  g.fillStyle='#4f4841';g.beginPath();g.arc(4*u,-3.4*u,2*u,0,7);g.fill();g.fillStyle='#e3aab0';g.beginPath();g.arc(4*u,-3.4*u,1.35*u,0,7);g.fill();
+  g.fillStyle='#8d8378';g.beginPath();g.moveTo(6.4*u,-2.2*u);g.lineTo(9.2*u,.2*u);g.lineTo(6.4*u,1.6*u);g.fill();
+  g.fillStyle='#17110c';g.beginPath();g.arc(6.3*u,-1.2*u,.85*u,0,7);g.fill();g.fillStyle='#fff';g.fillRect(6.4*u,-1.7*u,.5*u,.5*u);
+  g.fillStyle='#f08a9a';g.beginPath();g.arc(9.1*u,.2*u,.8*u,0,7);g.fill();
+  g.strokeStyle='rgba(240,230,214,.7)';g.lineWidth=Math.max(1,u*.3);g.beginPath();g.moveTo(8.2*u,.4*u);g.lineTo(10.6*u,-1*u);g.moveTo(8.2*u,.7*u);g.lineTo(10.8*u,1.2*u);g.stroke();
+  g.restore();}
+function callRat(){if(ovEl)return;if(!underground()){toast('Pip only delivers underground. The General Store is right up here!');return;}if(rats.length){toast('Pip is already on the way!');return;}
+  const info=gd=>{const u=SHOP.find(x=>x.id===gd.id).price*2,cost=u*gd.q,tab=Math.max(0,cost-G.money);return {u,cost,tab,full:G.debt+tab>TABMAX};};
+  const rows=RATGOODS.map(gd=>{const f=info(gd);return `<div class="rowitem"><span class="nm">${gd.q} ${gd.name}</span><span class="ds">$${f.u} each. That is double the store price.${f.tab&&!f.full?` $${f.tab} of it goes on your tab.`:''}</span><div class="act">${f.full?'<span class="lock">Your tab is full. Sell some ore first.</span>':`<span class="price">$${f.cost}</span><button class="btn" type="button" data-rat="${gd.id}">Send Pip</button>`}</div></div>`;}).join('');
+  const ov=overlay(`<div class="eyebrow">Emergency delivery</div><h3>Pip the pack rat</h3><p class="sub">Stuck without ladders or timber? Pip runs them down from the General Store. It costs <b>double</b>. What you can't pay now goes on your tab, and the store takes it out of your next sale.${G.debt?` You owe <span class="price">$${G.debt}</span> now.`:''}</p><div data-math></div>${rows}<div class="foot"><button class="ghost" data-close>Never mind (Esc)</button></div>`);
+  ov.querySelector('[data-close]').addEventListener('click',closeOverlay);
+  ov.querySelectorAll('[data-rat]').forEach(bt=>bt.addEventListener('click',()=>{const gd=RATGOODS.find(x=>x.id===bt.dataset.rat),f=info(gd);
+    ov.querySelectorAll('[data-rat]').forEach(x=>x.disabled=true);
+    mathBox(ov.querySelector('[data-math]'),gd.q,f.u,`Check Pip's bill: ${gd.q} ${gd.name} at $${f.u} each. Get it right and Pip packs one extra for free.`,'Just send Pip',(ok,secs,vd)=>{
+      const n=gd.q+(ok?1:0),pay=Math.min(G.money,f.cost);G.money-=pay;G.debt+=f.cost-pay;const c={id:gd.id,n,name:gd.name};G.pending=[c];hud();save();
+      if(ok===null){vd.className='verdict ok';vd.textContent='';}vd.innerHTML+=` Pip is on the way with ${n} ${gd.name}!`;
+      setTimeout(()=>{if(ovEl===ov)closeOverlay();spawnRat(c);},ok===null?600:1500);});}));}
+const ratB=$('#ratBtn');ratB.addEventListener('pointerdown',e=>e.stopPropagation());ratB.addEventListener('click',e=>{e.stopPropagation();callRat();stage.focus({preventScroll:true});});
 function explode(sh,pw){
   const ox=sh.dx?(sh.dx>0?sh.x0:sh.x0+sh.w):sh.x0+1,oy=sh.dy?(sh.dy>0?sh.y0:sh.y0+sh.h):sh.y0+1,cx=sh.x0+sh.w/2,cy=sh.y0+sh.h/2;
   for(let x=sh.x0;x<sh.x0+sh.w;x++)for(let y=sh.y0;y<sh.y0+sh.h;y++){if(!inB(x,y))continue;const i=idx(x,y);O[i]=0;DIR[i]=0;RAIL[i]=0;
@@ -677,11 +741,12 @@ function waterTick(){
 const kname=e=>e.key.length===1?e.key.toLowerCase():e.key;
 const TOOLKEYS={'1':'pick','2':'ladder','3':'timber','4':'fill','5':'dyn','6':'survey','7':'belt','8':'rail','9':'pump','0':'hoist'};
 stage.addEventListener('keydown',e=>{if(ovEl){if(e.key==='Escape')closeOverlay();return;}const k=kname(e);
-  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k)||(k.length===1&&'wasdemjl1234567890'.includes(k)))e.preventDefault();
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k)||(k.length===1&&'wasdemjlr1234567890'.includes(k)))e.preventDefault();
   if(k==='m'||k==='j'){openJournal();return;}
   if(k==='l'){if(!G.pack.lamp&&!G.f.had_lamp)toast('Buy a mine lantern at the General Store first.');else{setTool('lamp');hud();}}
   if(TOOLKEYS[k]){const t=TOOLKEYS[k];if(['belt','rail','pump','hoist'].includes(t)&&!G.pack[t]&&!G.f['had_'+t])toast('Buy that at the General Store first.');else{setTool(t);hud();}}
   if(k==='e')interact();
+  if(k==='r')callRat();
   keys.add(k);});
 stage.addEventListener('keyup',e=>keys.delete(kname(e)));
 stage.addEventListener('blur',()=>{if(!ovEl)keys.clear();});
@@ -860,7 +925,7 @@ function update(dt){
     q.life-=dt;if(q.life<=0)parts.splice(i,1);}
   if(parts.length>900)parts.splice(0,parts.length-900);
   floats.forEach(f=>{f.y-=dt*1.3;f.life-=dt;});floats=floats.filter(f=>f.life>0);
-  lights.forEach(l=>l.life-=dt);lights=lights.filter(l=>l.life>0);
+  lights.forEach(l=>l.life-=dt);lights=lights.filter(l=>l.life>0);updateRats(dt);
   scans.forEach(s=>s.life-=dt);scans=scans.filter(s=>s.life>0);
   shake=Math.max(0,shake-dt);flashA=Math.max(0,flashA-dt*2);
   flagT+=dt;if(flagT>.5){flagT=0;const r=rankIdx();if(r>=1)flag('rank1');if(r>=5)flag('baron');}
@@ -1077,7 +1142,7 @@ function draw(){
       g.fillStyle='#e2b38a';g.beginPath();g.arc(5.4*u,0,1.6*u,0,7);g.fill();g.restore();}
     else{g.save();g.translate(3.5*u,-16*u);g.rotate(p.climb?-2.6-sw*.4:-.2);g.fillStyle='#2f5f8a';rr(-1.5*u,0,3*u,7.2*u,1.4*u);g.fillStyle='#e2b38a';g.beginPath();g.arc(0,7.2*u,1.5*u,0,7);g.fill();g.restore();}
     g.restore();}
-  carts.forEach(drawCart);
+  carts.forEach(drawCart);rats.forEach(drawRat);
   parts.forEach(q=>{const a=Math.min(1,q.life*2),r=q.s*P*.5;if(q.fire){g.globalAlpha=a*.5;g.fillStyle=q.c;g.beginPath();g.arc(q.x*P,q.y*P,r*(1.6+(1-a)),0,7);g.fill();}else{g.globalAlpha=a;g.fillStyle='rgba(0,0,0,.35)';g.fillRect(q.x*P-r-1,q.y*P-r-1,r*2+2,r*2+2);g.fillStyle=q.c;g.fillRect(q.x*P-r,q.y*P-r,r*2,r*2);g.fillStyle='rgba(255,255,255,.25)';g.fillRect(q.x*P-r,q.y*P-r,r*2,Math.max(1,r*.5));}});g.globalAlpha=1;
   // ----- water -----
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const w=WA[idx(x,y)];if(w<.03||W[idx(x,y)]!==AIR)continue;const hgt=Math.min(1,w)*P,X=x*P,Y=y*P+P-hgt,top=water(x,y-1)<.05;
@@ -1099,7 +1164,7 @@ function draw(){
   lamps.forEach(l=>seed(l.x+.5,l.y+.5,5.4+.12*Math.sin(time*11+l.x*3)));
   glow.forEach(([x,y,a])=>seed(x+.5,y+.5,1.3+a*1.6));
   items.forEach(it=>seed(it.x,it.y,1.9));
-  hoists.forEach(H=>seed(H.x+.5,H.y+.6,2.6));lifts.forEach(L=>seed(L.x+.5,L.y-1.2,2.8));drills.forEach(d=>seed(d.x+.5,d.y+.5,d.on?3.4:2.2));pumps.forEach(pm=>seed(pm.x+.5,pm.y+.5,2.4));carts.forEach(c=>seed(c.x,c.y+.5,2.2));
+  hoists.forEach(H=>seed(H.x+.5,H.y+.6,2.6));lifts.forEach(L=>seed(L.x+.5,L.y-1.2,2.8));drills.forEach(d=>seed(d.x+.5,d.y+.5,d.on?3.4:2.2));pumps.forEach(pm=>seed(pm.x+.5,pm.y+.5,2.4));carts.forEach(c=>seed(c.x,c.y+.5,2.2));rats.forEach(r=>seed(r.x,r.y,2.5));
   lights.forEach(l=>seed(l.x,l.y,l.r*1.15*Math.min(1,l.life*1.6)+1));
   scans.forEach(s=>{const v=3.3*Math.min(1,s.life*.5);for(let y=s.y0;y<s.y0+s.b;y++)for(let x=s.x0;x<s.x0+s.a;x++){const i2=x-lx0,j=y-ly0;if(i2>=0&&j>=0&&i2<lw&&j<lh&&LM[j*lw+i2]<v)LM[j*lw+i2]=v;}});
   if(nightK>0)[[STORE[0],5],[ASSAY[0],5],[BUNK[0],4.2]].forEach(([bx,bw])=>{const by=SURF[Math.floor(bx)]-.9;seed(bx+.95,by,2.2+2*nightK);seed(bx+bw-.95,by,2.2+2*nightK);});
@@ -1140,6 +1205,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>

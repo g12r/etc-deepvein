@@ -131,6 +131,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .dealtag{font-family:var(--label);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:var(--tnt);color:#fff;border-radius:4px;padding:0 6px;margin-left:6px}
 .card .map{grid-template-columns:repeat(11,34px);grid-auto-rows:26px}
 .fsbtn{right:126px}
+.ratbtn{right:240px}
 .stage.fill{position:fixed;inset:0;z-index:50;margin:0;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;max-width:none}
 .stage:fullscreen{aspect-ratio:auto;width:100vw;height:100vh;border-radius:0;border:0}
 .chip.contract{border-color:#6a5530;color:var(--fg)} .chip.contract b{color:var(--gold)}
@@ -187,6 +188,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
       <span class="chip">Depth<b id="hDepth">0 ft</b></span>
     </div>
     <div class="goal" id="hGoal"></div>
+    <button class="jbtn ratbtn" id="ratBtn" type="button" hidden>Call Pip <kbd>R</kbd></button>
     <button class="jbtn fsbtn" id="fsBtn" type="button">Full screen</button>
     <button class="jbtn" id="jBtn" type="button">Journal <kbd>M</kbd></button>
     <div class="toast" hidden></div>
@@ -231,7 +233,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
         <div><h3>Geodes</h3><p>Round grey lumps in the rock. Crack them at the assay office: each is a <b>times-table fact</b>, and a streak of right answers pays more. You choose which table to work on.</p></div>
         <div><h3>Old caches</h3><p>Three old prospector's caches are buried on the claim. <b>Old rubble</b> deep underground points to them. Each holds a piece of the map to the <b>Mother Lode</b>.</p></div>
         <div><h3>More than gold</h3><p><b>Copper</b> near the top, <b>silver</b> below it, <b>gems</b> in deep rock and <b>rubies</b> in granite. Fossils and old relics go in your museum collection.</p></div>
-        <div><h3>Math pays</h3><p>Work out the weigh-in at the Assay Office and you get a big cash bonus on the whole sale, and a bigger one in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
+        <div><h3>Pip the pack rat</h3><p>Out of ladders or timber down a shaft? Press <b>R</b> and Pip runs some down from the store. It costs <b>double</b>, and what you cannot pay goes on your tab until your next sale.</p></div>
+        <div><h3>Math pays</h3><p>Work out the weigh-in at the Assay Office and you get <b>50% more</b> for the whole sale, or <b>75% more</b> in under 3 seconds. Counting the cost at the store gets you free extras.</p></div>
         <div><h3>Deeper is richer</h3><p>Water seeps in below 90 ft, so you need <b>pumps</b>. Deep rock (125 ft) needs a steel pick and pays 2 nuggets a block. Granite (225 ft) needs a diamond pick and pays 3.</p></div>
         <div><h3>Roofs need timber</h3><p>A roof holds about <b>2 blocks from a wall in dirt</b>, 3 in stone, 4 in deep rock. Past that it creaks and caves in. A timber post holds it up.</p></div>
         <div><h3>Machines</h3><p>A <b>hoist</b> lifts ore to your strongbox. <b>Belts</b> and <b>carts</b> feed it. The <b>elevator</b> rides a whole shaft, and the <b>steam drill</b> bores tunnels by itself.</p></div>
