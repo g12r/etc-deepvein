@@ -29,6 +29,9 @@ for path in sorted(glob.glob(os.path.join(ROOT, 'art', '*.webp'))):
     with open(path, 'rb') as f:
         art[os.path.splitext(os.path.basename(path))[0]] = 'data:image/webp;base64,' + base64.b64encode(f.read()).decode()
 js += 'const ART={' + ','.join('%s:"%s"' % kv for kv in art.items()) + '};\n'
+# where each animation frame sits inside art/sprites.webp
+sprites = os.path.join(ROOT, 'art', 'sprites.json')
+js += 'const SPR=' + (open(sprites, encoding='utf-8').read() if os.path.exists(sprites) else 'null') + ';\n'
 js += read('game.js')
 
 js = re.sub(r'[^\x00-\x7f]', lambda m: '\\u%04x' % ord(m.group(0)), js)

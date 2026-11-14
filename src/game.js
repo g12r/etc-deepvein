@@ -691,7 +691,7 @@ function updateRats(dt){
   const show=underground();if(ratB.hidden===show)ratB.hidden=!show;
   const lowOil=oilOffer();if(oilB.hidden===lowOil)oilB.hidden=!lowOil;
   if(show&&G.pack.ladder===0&&!rats.length)once('pip','Out of ladders? Press R to call Pip the pack rat. He runs supplies down to you, at double price.');}
-function drawRat(r){const P=tilePx,u=P/16,onFloor=!r.dy&&solid(Math.floor(r.x),Math.floor(r.y)+1);
+function drawRat(r){if(spritesReady()){drawRatSprite(r);return;}const P=tilePx,u=P/16,onFloor=!r.dy&&solid(Math.floor(r.x),Math.floor(r.y)+1);
   g.save();g.translate(r.x*P,(r.y+(onFloor?.3:0))*P);if(r.dy)g.rotate(r.dy>0?Math.PI/2:-Math.PI/2);else g.scale(r.dx<0?-1:1,1);
   const run=r.wait>0?0:1,ph=time*34;
   g.strokeStyle='#e9a3ac';g.lineWidth=Math.max(1,u*.9);g.lineCap='round';g.beginPath();g.moveTo(-4.6*u,.6*u);g.quadraticCurveTo(-8*u,(1.6+Math.sin(time*12)*1.2)*u,-10.5*u,(-2+Math.cos(time*12)*1.4)*u);g.stroke();
@@ -1255,6 +1255,26 @@ function roofBeams(x0,x1,y0,y1){const xa=Math.max(1,x0-BEAMSPAN-1),xb=Math.min(C
     for(let x=xa;x<=xb;x++){if(W[idx(x,y)]!==AIR){last=-1;continue;}if(!postTop(x,y))continue;
       if(last>=0&&x-last<=BEAMSPAN+1)for(let k=last+1;k<x;k++){if(!solid(k,y-1)||obj(k,y))continue;BEAM[idx(k,y)]=(!solid(k-1,y-1)||!solid(k+1,y-1))?2:1;}
       last=x;}}}
+// One frame out of the painted sprite atlas, drawn with its feet at (0,0) and facing the way the caller has flipped the canvas.
+function sprite(name,scale){const f=SPR[name];g.imageSmoothingEnabled=true;g.drawImage(AI.sprites,f.x,f.y,f.w,f.h,-f.ax*scale,-f.h*scale,f.w*scale,f.h*scale);g.imageSmoothingEnabled=false;}
+const spritesReady=()=>!!(SPR&&AI.sprites);
+let swingAt=-9,swingWas=0;
+function drawMinerSprite(){const P=tilePx,sc=P*1.86/SPR._minerHeight,walking=p.ground&&Math.abs(p.vx)>.5;
+  if(p.swing>swingWas+.2)swingAt=time;swingWas=p.swing;const since=time-swingAt;
+  let fr='m_idle';
+  if(p.climb)fr=Math.floor(p.y*1.7)%2?'m_climb1':'m_climb2';
+  else if(since<.34&&!p.riding)fr=since<.09?'m_swing3':since<.22?'m_swing1':'m_swing2'; // strike on the hit, then lift for the next one
+  else if(walking)fr='m_walk'+(1+Math.floor(time*9)%4);
+  else if(!p.ground&&!p.riding&&!p.onLift)fr='m_walk2';
+  g.save();g.translate(p.x*P,p.y*P);
+  if(p.ground&&!p.climb){g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,0,P*.42,P*.085,0,0,7);g.fill();}
+  if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
+  if(!p.climb)g.scale(p.face,1);
+  const bob=walking?0:p.ground?Math.sin(time*2.2)*P*.006:0;g.translate(0,P*.04+bob);
+  sprite(fr,sc);g.restore();}
+function drawRatSprite(r){const P=tilePx,sc=P*1.2/190,onFloor=!r.dy&&solid(Math.floor(r.x),Math.floor(r.y)+1);
+  g.save();g.translate(r.x*P,(r.y+(onFloor?.5:.22))*P);if(r.dy){g.rotate(r.dy>0?Math.PI/2:-Math.PI/2);g.translate(0,P*.2);}else g.scale(r.dx<0?-1:1,1);
+  sprite((r.cargo?'r_full':'r_empty')+(r.wait>0?1:1+Math.floor(time*14)%4),sc);g.restore();}
 function drawClimber(){const P=tilePx,u=P/16,sw=Math.sin(p.y*8),cw=Math.cos(p.y*8);
   g.save();g.translate(p.x*P,p.y*P);if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
   const limb=(x1,y1,x2,y2,w,c)=>{g.strokeStyle=c;g.lineWidth=w*u;g.lineCap='round';g.beginPath();g.moveTo(x1*u,y1*u);g.lineTo(x2*u,y2*u);g.stroke();};
@@ -1392,7 +1412,7 @@ function draw(){
       const ax=(sh.x0+sh.w/2)*P,ay=(sh.y0+sh.h/2)*P,L=P*.7;g.fillStyle=far?'rgba(190,190,190,.8)':'rgba(255,220,150,.95)';g.beginPath();g.moveTo(ax+sh.dx*L,ay+sh.dy*L);g.lineTo(ax-sh.dx*L*.4-sh.dy*L*.6,ay-sh.dy*L*.4-sh.dx*L*.6);g.lineTo(ax-sh.dx*L*.4+sh.dy*L*.6,ay-sh.dy*L*.4+sh.dx*L*.6);g.fill();}
     else if(G.tool==='survey'){g.strokeStyle='rgba(255,210,94,.8)';g.setLineDash([P*.2,P*.15]);g.strokeRect(X-P*2,Y-P*2,P*5,P*5);g.setLineDash([]);}}
   // ----- the miner -----
-  if(p.climb)drawClimber();else
+  if(spritesReady())drawMinerSprite();else if(p.climb)drawClimber();else
   {g.save();g.translate(p.x*P,p.y*P);g.scale(p.face,1);const u=P/16;const walking=p.ground&&Math.abs(p.vx)>.5;const ph=walking?time*15:p.climb?p.y*8:0;const sw=walking||p.climb?Math.sin(ph):0;const bob=walking?Math.abs(Math.cos(ph))*.8:p.ground?Math.sin(time*2.2)*.25:0;
     if(p.stun>0)g.rotate(Math.sin(time*30)*.06);
     if(p.ground){g.fillStyle='rgba(0,0,0,.28)';g.beginPath();g.ellipse(0,0,6.5*u,1.3*u,0,0,7);g.fill();}
@@ -1484,6 +1504,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={buy,openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={spritesReady,buy,openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>

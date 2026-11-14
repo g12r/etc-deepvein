@@ -95,7 +95,7 @@ It is built from four source files:
 | `src/helpers.js` | Colour and sound helpers |
 | `src/tiles.js` | Tile and ore art, drawn in code |
 | `src/game.js` | The game |
-| `art/*.webp` | Painted images for the town buildings, windmill, water tower, hoist frame, price board and ladder |
+| `art/*.webp` | Painted images: the town buildings, windmill, water tower, hoist frame, price board, ladder, rock and tunnel-wall tiles, and the animation frames for the miner and Pip (`sprites.webp`, with `sprites.json` saying where each frame is) |
 
 Build the page with:
 

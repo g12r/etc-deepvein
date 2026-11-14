@@ -165,3 +165,62 @@ def tile_set(quadrant, name, keep, count=6):
 CHECK = os.path.join(ROOT, 'docs', 'proposals', 'art-test')
 tile_set(0, 'rock', keep=.1).save(os.path.join(CHECK, 'seamless-rock-check.jpg'), quality=88)
 tile_set(3, 'wall', keep=.05).save(os.path.join(CHECK, 'seamless-wall-check.jpg'), quality=88)
+
+
+# ---------- the miner and Pip: pose sheets cut into animation frames, packed into one atlas ----------
+import json
+
+
+def frames_from(sheet_name, cols, rows):
+    im = key(sheet_name)
+    cw, ch = im.size[0] // cols, im.size[1] // rows
+    out = []
+    for r in range(rows):
+        for c in range(cols):
+            cell = im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch))
+            a = np.asarray(cell)[..., 3]
+            a = np.where(a > 60, a, 0)                      # drop faint specks before measuring
+            ys, xs = np.where(a > 0)
+            box = (xs.min(), ys.min(), xs.max() + 1, ys.max() + 1)
+            out.append(cell.crop(box))
+    return out
+
+
+def foot_x(fr, part=.14):
+    """Where the feet are, left to right: the anchor that keeps a character from sliding between frames."""
+    a = np.asarray(fr)[..., 3]
+    band = a[int(a.shape[0] * (1 - part)):]
+    xs = np.where(band > 60)[1]
+    return float(xs.mean())
+
+
+miner = frames_from('miner.png', 5, 2)
+rat = frames_from('rat.png', 4, 2)
+MS = 200.0 / miner[0].size[1]      # the standing miner is stored 200 px tall
+RS = 190.0 / max(f.size[0] for f in rat)
+names = ['idle', 'walk1', 'walk2', 'walk3', 'walk4', 'swing1', 'swing2', 'swing3', 'climb1', 'climb2']
+items = []
+for n, fr in zip(names, miner):
+    ax = fr.size[0] / 2 if n.startswith('climb') else foot_x(fr)
+    items.append(('m_' + n, fr, MS, ax))
+for k, fr in enumerate(rat):
+    items.append((('r_full%d' if k < 4 else 'r_empty%d') % (k % 4 + 1), fr, RS, fr.size[0] / 2))
+# pack in rows
+meta, x, y, rowh, W = {}, 0, 0, 0, 1024
+placed = []
+for n, fr, sc, ax in items:
+    small = fr.resize((max(1, round(fr.size[0] * sc)), max(1, round(fr.size[1] * sc))), Image.LANCZOS)
+    if x + small.size[0] + 2 > W:
+        x, y, rowh = 0, y + rowh + 2, 0
+    placed.append((small, x, y))
+    meta[n] = {'x': x, 'y': y, 'w': small.size[0], 'h': small.size[1], 'ax': round(ax * sc, 1)}
+    x += small.size[0] + 2
+    rowh = max(rowh, small.size[1])
+atlas = Image.new('RGBA', (W, y + rowh), (0, 0, 0, 0))
+for small, px, py in placed:
+    atlas.paste(small, (px, py))
+atlas.save(os.path.join(OUT, 'sprites.webp'), 'WEBP', quality=92, method=6)
+meta['_minerHeight'] = round(miner[0].size[1] * MS)
+with open(os.path.join(OUT, 'sprites.json'), 'w') as f:
+    json.dump(meta, f, separators=(',', ':'))
+print('sprites    %4d x %-4d %6d bytes, %d frames' % (atlas.size[0], atlas.size[1], os.path.getsize(os.path.join(OUT, 'sprites.webp')), len(items)))
