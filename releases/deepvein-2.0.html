@@ -142,6 +142,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .cashhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .cashbig{font-family:var(--label);font-weight:700;font-size:3rem;line-height:.95;color:var(--ok);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cashbig small{display:block;font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.pgrid{grid-template-columns:repeat(11,34px);grid-auto-rows:28px}
+.pgrid button{font:inherit;cursor:pointer;padding:0;text-transform:none;letter-spacing:0;border-radius:4px}
+.pgrid .h{background:#3a2c1c;border:1px solid #6a5232;color:var(--lamp);font-weight:700}
+.pgrid .h:hover,.pgrid .c:hover{border-color:var(--lamp)}
+.pgrid .c{background:#211a14;color:#5d5144;border:1px solid #33291f;font-size:.78rem;font-weight:600;text-decoration:line-through}
+.pgrid .c.on{background:#4c5a2a;color:#eaf5c8;border-color:#7f9a44;text-decoration:none}
+.tab:disabled{opacity:.4;cursor:not-allowed}
 .menubtn{bottom:48px}
 .fsbtn{bottom:86px}
 .ratbtn{bottom:124px}
@@ -480,6 +487,16 @@ const rankIdx=()=>{let r=0;RANKS.forEach((k,i)=>{if(G.earned>=k[1])r=i;});return
 /* ---------- facts: the adaptive engine + Mother Lode map (kept across claims) ---------- */
 let FS={f:{},rows:[]};try{const raw=localStorage.getItem(FKEY);if(raw)FS=JSON.parse(raw);}catch(e){}
 FS.f=FS.f||{};FS.rows=FS.rows||[];
+FS.cfg=Object.assign({mode:'random',tables:[],off:{},flowT:0,flowI:0,lastT:0},FS.cfg||{});
+const factOn=(a,b)=>!FS.cfg.off[a+'x'+b];
+const anyOn=()=>{for(let a=1;a<=10;a++)for(let b=1;b<=10;b++)if(factOn(a,b))return true;return false;};
+// Flow: work up one times table in order (1 x 8, 2 x 8 ... 10 x 8), then move to a different table from the chosen set.
+function flowFact(){const c=FS.cfg,has=t=>{for(let i=1;i<=10;i++)if(factOn(i,t))return true;return false;};
+  for(let guard=0;guard<3;guard++){
+    if(c.flowT){for(let i=c.flowI+1;i<=10;i++)if(factOn(i,c.flowT)){c.flowI=i;return [i,c.flowT];}c.lastT=c.flowT;c.flowT=0;}
+    let pool=(c.tables.length?c.tables:[1,2,3,4,5,6,7,8,9,10]).filter(has);if(!pool.length)pool=[1,2,3,4,5,6,7,8,9,10].filter(has);if(!pool.length)return null;
+    const fresh=pool.filter(t=>t!==c.lastT);const from=fresh.length?fresh:pool;c.flowT=from[Math.floor(Math.random()*from.length)];c.flowI=0;}
+  return null;}
 const fk=(a,b)=>a+'x'+b;
 const fget=(a,b)=>FS.f[fk(a,b)]||(FS.f[fk(a,b)]={n:0,ok:0,st:0,m:0,bad:0,t:0});
 function fsave(){try{localStorage.setItem(FKEY,JSON.stringify(FS));}catch(e){}}
@@ -498,11 +515,14 @@ function record(a,b,ok,secs){
 let seam={row:0,left:0},recent=[];
 function pickFact(){
   const now=Date.now();
-  if(seam.left<=0&&Math.random()<.22){const cnt=[];for(let r=1;r<=10;r++){let m=0;for(let c=1;c<=10;c++)if((FS.f[fk(r,c)]||{}).m)m++;if(m<10)cnt.push([r,m]);}
+  if(FS.cfg.mode==='flow'){const ff=flowFact();if(ff){fsave();hud();return ff;}}
+  const open=anyOn();
+  if(seam.left<=0&&Math.random()<.22){const cnt=[];for(let r=1;r<=10;r++){let m=0;for(let c=1;c<=10;c++)if((FS.f[fk(r,c)]||{}).m)m++;let on=0;for(let c=1;c<=10;c++)if(factOn(r,c))on++;if(m<10&&on)cnt.push([r,m]);}
     if(cnt.length){const lo=Math.min(...cnt.map(c=>c[1]));const opts=cnt.filter(c=>c[1]===lo);seam={row:opts[Math.floor(Math.random()*opts.length)][0],left:5};toast(`You struck the ${seam.row}s seam! The next few are all ${seam.row}s.`,3200);}}
   const rows=seam.left>0?[seam.row]:[1,2,3,4,5,6,7,8,9,10];const cand=[];let tot=0;
-  rows.forEach(a=>{for(let b=1;b<=10;b++){if(recent.includes(fk(a,b)))continue;const f=FS.f[fk(a,b)];
+  const scan=skipRecent=>rows.forEach(a=>{for(let b=1;b<=10;b++){if(open&&!factOn(a,b))continue;if(skipRecent&&recent.includes(fk(a,b)))continue;const f=FS.f[fk(a,b)];
     const w=!f||!f.n?3:f.m?(now-f.t>864e5?1.5:.35):(f.bad&&now-f.bad<6e5?7:4-Math.min(2,f.st));cand.push([a,b,w]);tot+=w;}});
+  scan(true);if(!cand.length)scan(false);if(!cand.length){seam.left=0;for(let a=1;a<=10;a++)for(let b=1;b<=10;b++)if(!open||factOn(a,b)){cand.push([a,b,1]);tot+=1;}}
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[2];if(r<=0){pick=c;break;}}
   if(seam.left>0)seam.left--;recent.push(fk(pick[0],pick[1]));if(recent.length>3)recent.shift();hud();
   return [pick[0],pick[1]];
@@ -787,7 +807,7 @@ function newOffers(){const L=(G.done||0)+rankIdx()*2,R=Math.random;const mk={
 
 /* the ore exchange: sell, crack geodes, pick contracts */
 let assayTab='sell',geoRow=0,lastB=0;
-function pickRow(a){const now=Date.now(),cand=[];let tot=0;for(let b=1;b<=10;b++){if(b===lastB)continue;const f=FS.f[fk(a,b)];const w=!f||!f.n?3:f.m?.5:(f.bad&&now-f.bad<6e5?7:4-Math.min(2,f.st));cand.push([b,w]);tot+=w;}
+function pickRow(a){const now=Date.now(),cand=[];let tot=0,on=0;for(let b=1;b<=10;b++)if(factOn(a,b))on++;if(!on)return pickFact();for(let b=1;b<=10;b++){if(!factOn(a,b)||(b===lastB&&on>1))continue;const f=FS.f[fk(a,b)];const w=!f||!f.n?3:f.m?.5:(f.bad&&now-f.bad<6e5?7:4-Math.min(2,f.st));cand.push([b,w]);tot+=w;}
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[1];if(r<=0){pick=c;break;}}lastB=pick[0];return [a,pick[0]];}
 function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   const tabs=[['sell','Sell ore'],['geode',`Crack geodes${gd?` (${gd})`:''}`],['board',`Contracts${G.contract?'':' (new!)'}`]].map(([k,l])=>`<button class="tab" type="button" data-tab="${k}" aria-pressed="${assayTab===k}">${l}</button>`).join('');
@@ -1206,16 +1226,42 @@ function saveGame(){const list=saveList();if(list.length>=MAXSAVES)return 'full'
   catch(e){try{localStorage.removeItem(SLOT_KEY+id);}catch(e2){}return 'nospace';}}
 function loadGame(id){const raw=localStorage.getItem(SLOT_KEY+id);if(!raw)return false;start(true,raw);save();return true;}
 function deleteGame(id){try{localStorage.removeItem(SLOT_KEY+id);localStorage.setItem(SAVES_KEY,JSON.stringify(saveList().filter(x=>x.id!==id)));}catch(e){}}
+const PARENT_PW='powder';
+function openParent(){
+  const ov=overlay(`<div class="eyebrow">Grown-ups only</div><h3>Parent settings</h3><p class="sub">Enter the password to change which math facts the game asks.</p><form class="eq" data-pw><input type="password" autocomplete="off" aria-label="Password" style="width:12ch"><button class="btn" type="submit">Unlock</button><button class="ghost" type="button" data-close>Back</button></form><div class="verdict bad" aria-live="polite"></div>`);
+  const inp=ov.querySelector('input');setTimeout(()=>inp.focus(),40);ov.querySelector('[data-close]').addEventListener('click',()=>openMenu());
+  ov.querySelector('[data-pw]').addEventListener('submit',e=>{e.preventDefault();if(inp.value===PARENT_PW)parentPanel();else{ov.querySelector('.verdict').textContent='That is not the password.';inp.value='';inp.focus();}});}
+function parentPanel(msg){const c=FS.cfg,T=[1,2,3,4,5,6,7,8,9,10];let on=0;T.forEach(a=>T.forEach(b=>{if(factOn(a,b))on++;}));
+  const grid='<button type="button" class="h all" data-all title="Whole table">\u00d7</button>'+T.map(b=>`<button type="button" class="h" data-col="${b}">${b}</button>`).join('')+
+    T.map(a=>`<button type="button" class="h" data-row="${a}">${a}</button>`+T.map(b=>`<button type="button" class="c${factOn(a,b)?' on':''}" data-cell="${a}x${b}" title="${a} \u00d7 ${b}">${a*b}</button>`).join('')).join('');
+  const ov=overlay(`<div class="eyebrow">Parent settings</div><h3>Math facts</h3>
+    <h4>How facts are chosen</h4><div class="tabs"><button class="tab" type="button" data-mode="random" aria-pressed="${c.mode==='random'}">Random</button><button class="tab" type="button" data-mode="flow" aria-pressed="${c.mode==='flow'}">Flow</button></div>
+    <p class="sub">${c.mode==='flow'?'<b>Flow:</b> one times table at a time, in order (1 \u00d7 8, 2 \u00d7 8, up to 10 \u00d7 8), then a different table from the ones you pick below.':'<b>Random:</b> any fact that is switched on, leaning toward the ones that need practice.'}</p>
+    ${c.mode==='flow'?`<div class="rowpicks">${T.map(t=>`<button class="rowpick" type="button" data-table="${t}" aria-pressed="${c.tables.includes(t)}">${t}s</button>`).join('')}</div><p class="sub">${c.tables.length?'Tables in the flow: <b>'+c.tables.slice().sort((x,y)=>x-y).join(', ')+'</b>.':'No tables picked, so the flow uses all ten.'}</p>`:''}
+    <h4>Which facts are in play</h4><div class="tabs"><button class="tab" type="button" aria-pressed="true">Multiplication</button><button class="tab" type="button" disabled>Addition</button><button class="tab" type="button" disabled>Subtraction</button><button class="tab" type="button" disabled>Division</button></div>
+    <p class="sub"><b>${on}</b> of 100 facts are on. Click a fact to switch it on or off. Click a number along the top or side to switch a whole column or row, or \u00d7 for the whole table.</p>
+    <div class="map-scroll"><div class="map pgrid">${grid}</div></div><div class="verdict ${msg&&msg.bad?'bad':'ok'}">${msg?msg.t:''}</div><div class="foot"><button class="btn" type="button" data-close>Done</button></div>`);
+  const save2=()=>{fsave();};
+  const setCells=(cells,toOn)=>{cells.forEach(k=>{if(toOn)delete c.off[k];else c.off[k]=1;});if(!anyOn()){cells.forEach(k=>delete c.off[k]);save2();parentPanel({bad:true,t:'At least one fact has to stay on.'});return;}c.flowT=0;c.flowI=0;save2();parentPanel();};
+  const flip=cells=>setCells(cells,!cells.every(k=>!c.off[k]));
+  ov.querySelector('[data-close]').addEventListener('click',()=>openMenu('', 'Parent settings saved.'));
+  ov.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{c.mode=b.dataset.mode;c.flowT=0;c.flowI=0;save2();parentPanel();}));
+  ov.querySelectorAll('[data-table]').forEach(b=>b.addEventListener('click',()=>{const t=+b.dataset.table;c.tables=c.tables.includes(t)?c.tables.filter(x=>x!==t):c.tables.concat(t);c.flowT=0;c.flowI=0;save2();parentPanel();}));
+  ov.querySelectorAll('[data-cell]').forEach(b=>b.addEventListener('click',()=>flip([b.dataset.cell])));
+  ov.querySelectorAll('[data-row]').forEach(b=>b.addEventListener('click',()=>flip(T.map(k=>b.dataset.row+'x'+k))));
+  ov.querySelectorAll('[data-col]').forEach(b=>b.addEventListener('click',()=>flip(T.map(k=>k+'x'+b.dataset.col))));
+  ov.querySelector('[data-all]').addEventListener('click',()=>{const all=[];T.forEach(a=>T.forEach(b=>all.push(a+'x'+b)));const allOn=all.every(k=>!c.off[k]);if(allOn){toast('Switch off rows, columns or single facts. The whole table cannot be off.',3200);return;}setCells(all,true);});}
 function openMenu(view,msg){const list=saveList();let body;
   const sure=(btn,text,fn)=>{if(btn.dataset.sure){fn();return;}btn.dataset.sure='1';btn.dataset.was=btn.textContent;btn.textContent=text;setTimeout(()=>{if(btn.isConnected){delete btn.dataset.sure;btn.textContent=btn.dataset.was;}},3500);};
   if(view==='load'){body=`<p class="sub">Pick a saved game. It replaces the game you are in now, so save that first if you want to keep it.</p>`+(list.map(x=>`<div class="rowitem"><span class="nm">${x.name}</span><span class="ds">Saved ${when(x.t)}${x.depth?`. Deepest: ${x.depth} ft.`:'.'}</span><div class="act"><button class="btn" type="button" data-load="${x.id}">Load</button><button class="ghost" type="button" data-del="${x.id}">Delete</button></div></div>`).join('')||'<p class="sub">No saved games yet. Use Save game on the main menu.</p>')+`<div class="foot"><button class="ghost" type="button" data-back>Back</button></div>`;}
   else body=`<p class="sub">Your game: <b>${gameLabel()}</b>. It saves by itself as you play, and comes back the next time you open Deepvein.</p>
-    <div class="menu"><button class="btn" type="button" data-close>Continue</button><button class="ghost" type="button" data-save>Save game</button><button class="ghost" type="button" data-toload>Load game${list.length?` (${list.length})`:''}</button><button class="ghost" type="button" data-new>New game</button></div>`;
+    <div class="menu"><button class="btn" type="button" data-close>Continue</button><button class="ghost" type="button" data-save>Save game</button><button class="ghost" type="button" data-toload>Load game${list.length?` (${list.length})`:''}</button><button class="ghost" type="button" data-new>New game</button><button class="ghost" type="button" data-parent>Parent settings</button></div>`;
   const ov=overlay(`<div class="eyebrow">${view==='load'?'Saved games':'Main menu'}</div><h3>Deepvein</h3>${body}<div class="verdict ok">${msg||''}</div>`);
   const q=k=>ov.querySelector(k);
   if(q('[data-close]'))q('[data-close]').addEventListener('click',closeOverlay);
   if(q('[data-back]'))q('[data-back]').addEventListener('click',()=>openMenu());
   if(q('[data-toload]'))q('[data-toload]').addEventListener('click',()=>openMenu('load'));
+  if(q('[data-parent]'))q('[data-parent]').addEventListener('click',openParent);
   if(q('[data-save]'))q('[data-save]').addEventListener('click',()=>{const r=saveGame();openMenu('',r==='ok'?`Saved: ${gameLabel()}.`:r==='full'?`You have ${MAXSAVES} saved games, which is the most there is room for. Delete one under Load game first.`:'There was no room to save. Delete an old saved game first.');});
   if(q('[data-new]'))q('[data-new]').addEventListener('click',e=>sure(e.currentTarget,'Click again to start over',()=>{start(false);save();stage.focus({preventScroll:true});}));
   ov.querySelectorAll('[data-load]').forEach(bt=>bt.addEventListener('click',e=>sure(e.currentTarget,'Click again to load',()=>{const nm=saveList().find(x=>x.id===bt.dataset.load);if(loadGame(bt.dataset.load))toast(`Loaded: ${nm?nm.name:'saved game'}.`,3200);else openMenu('load','That save could not be read.');})));
@@ -1806,6 +1852,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>

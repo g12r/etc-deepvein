@@ -137,6 +137,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .cashhead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .cashbig{font-family:var(--label);font-weight:700;font-size:3rem;line-height:.95;color:var(--ok);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cashbig small{display:block;font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.pgrid{grid-template-columns:repeat(11,34px);grid-auto-rows:28px}
+.pgrid button{font:inherit;cursor:pointer;padding:0;text-transform:none;letter-spacing:0;border-radius:4px}
+.pgrid .h{background:#3a2c1c;border:1px solid #6a5232;color:var(--lamp);font-weight:700}
+.pgrid .h:hover,.pgrid .c:hover{border-color:var(--lamp)}
+.pgrid .c{background:#211a14;color:#5d5144;border:1px solid #33291f;font-size:.78rem;font-weight:600;text-decoration:line-through}
+.pgrid .c.on{background:#4c5a2a;color:#eaf5c8;border-color:#7f9a44;text-decoration:none}
+.tab:disabled{opacity:.4;cursor:not-allowed}
 .menubtn{bottom:48px}
 .fsbtn{bottom:86px}
 .ratbtn{bottom:124px}
