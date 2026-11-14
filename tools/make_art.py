@@ -91,3 +91,77 @@ RUNGS = 3
 sec = lad.crop((0, gap, w, gap + period * RUNGS))
 print('ladder: rungs every %d px; section holds %d' % (period, RUNGS))
 save(sec, 'ladder', height=192)
+
+
+# ---------- rock and tunnel-wall tiles: six of each, any of which can sit next to any other ----------
+from PIL import ImageFilter
+
+T = 128          # tile size in the game art
+SRC_PER_TILE = 230  # how many pixels of the source painting one tile covers
+
+
+def flatten(im, keep):
+    """Take out the big light-to-dark sweep painted across the texture, so repeats do not show as a pattern."""
+    a = np.asarray(im.convert('RGB')).astype(float)
+    lum = a.mean(axis=2)
+    half = im.size[0] // 2
+    pad = np.pad(lum, half, mode='reflect')
+    blur = np.asarray(Image.fromarray(pad.astype('uint8')).filter(ImageFilter.GaussianBlur(im.size[0] * .16))).astype(float)
+    blur = blur[half:half + im.size[1], half:half + im.size[0]]
+    gain = (lum.mean() / np.maximum(blur, 8)) ** (1 - keep)
+    return np.clip(a * gain[..., None], 0, 255)
+
+
+def smooth(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def wrap_tile(tex, x0, y0, lap=36):
+    """A tile whose right edge runs into its own left edge, and bottom into top, by cross-fading an overlap."""
+    big = tex[y0:y0 + T + lap, x0:x0 + T + lap].copy()
+    w = smooth(np.arange(lap) / (lap - 1))
+    big[:, :lap] = big[:, T:T + lap] * (1 - w)[None, :, None] + big[:, :lap] * w[None, :, None]
+    big = big[:, :T]
+    big[:lap] = big[T:T + lap] * (1 - w)[:, None, None] + big[:lap] * w[:, None, None]
+    return big[:T]
+
+
+def tile_set(quadrant, name, keep, count=6):
+    sheet = Image.open(os.path.join(SRC, 'tiles.png')).convert('RGB')
+    h = sheet.size[0] // 2
+    q = sheet.crop(((quadrant % 2) * h, (quadrant // 2) * h, (quadrant % 2 + 1) * h, (quadrant // 2 + 1) * h))
+    size = round(h * T / SRC_PER_TILE)
+    tex = np.asarray(Image.fromarray(flatten(q, keep).astype('uint8')).resize((size, size), Image.LANCZOS)).astype(float)
+    room = size - T - 40
+    base = wrap_tile(tex, 0, 0)
+    # every tile keeps the base tile's outer ring, so all of them share the same edges
+    d = np.minimum.reduce(np.meshgrid(np.minimum(np.arange(T), T - 1 - np.arange(T)), np.minimum(np.arange(T), T - 1 - np.arange(T))))
+    inner = smooth((d - 5) / 26.0)[..., None]
+    rng = np.random.RandomState(7 + quadrant)
+    tiles = [base]
+    spots = [(room, 0), (0, room), (room, room), (room // 2, room // 3), (room // 3, room)]
+    for k in range(count - 1):
+        x0, y0 = spots[k]
+        crop = tex[y0:y0 + T, x0:x0 + T]
+        if k % 2:
+            crop = crop[:, ::-1]
+        tiles.append(base * (1 - inner) + crop * inner)
+    # how well do edges meet? compare the step across a join with the step between neighbouring pixels inside a tile
+    inside = np.mean([np.abs(t[:, 1:] - t[:, :-1]).mean() for t in tiles])
+    joins = [np.abs(a[:, -1] - b[:, 0]).mean() for a in tiles for b in tiles] + [np.abs(a[-1] - b[0]).mean() for a in tiles for b in tiles]
+    print('%s: step across a join %.1f (worst %.1f) against %.1f inside a tile' % (name, np.mean(joins), np.max(joins), inside))
+    for k, t in enumerate(tiles):
+        Image.fromarray(np.clip(t, 0, 255).astype('uint8')).save(os.path.join(OUT, '%s%d.webp' % (name, k + 1)), 'WEBP', quality=88, method=6)
+    # a contact sheet of the tiles laid at random, for checking by eye
+    n = 8
+    sheet = np.zeros((T * n, T * n, 3))
+    for j in range(n):
+        for i in range(n):
+            sheet[j * T:(j + 1) * T, i * T:(i + 1) * T] = tiles[rng.randint(count)]
+    return Image.fromarray(np.clip(sheet, 0, 255).astype('uint8'))
+
+
+CHECK = os.path.join(ROOT, 'docs', 'proposals', 'art-test')
+tile_set(0, 'rock', keep=.1).save(os.path.join(CHECK, 'seamless-rock-check.jpg'), quality=88)
+tile_set(3, 'wall', keep=.05).save(os.path.join(CHECK, 'seamless-wall-check.jpg'), quality=88)

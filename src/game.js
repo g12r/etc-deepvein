@@ -1047,7 +1047,18 @@ function update(dt){
 
 /* ---------- drawing ---------- */
 // Things that stand in town between the buildings: a windmill, a water tower, and the day's prices chalked on a board.
-const AI={};Object.keys(ART).forEach(k=>{const im=new Image();im.onload=()=>{AI[k]=im;};im.src=ART[k];});
+const AI={};Object.keys(ART).forEach(k=>{const im=new Image();im.onload=()=>{AI[k]=im;rockArt();};im.src=ART[k];});
+// Painted rock and tunnel-wall tiles replace the code-drawn ones once all six of each have loaded.
+// Any of the six can sit next to any other, so they are mixed at random; deeper layers are the same rock tinted.
+let rockArtDone=false;
+function rockArt(){if(rockArtDone)return;const R6=[1,2,3,4,5,6];if(!R6.every(k=>AI['rock'+k]&&AI['wall'+k]))return;rockArtDone=true;const TT=128;
+  const set=(name,tintc,over)=>R6.map(k=>{const c=document.createElement('canvas');c.width=c.height=TT;const x=c.getContext('2d');x.drawImage(AI[name+k],0,0,TT,TT);if(tintc){x.fillStyle=tintc;x.fillRect(0,0,TT,TT);}if(over)over(x);return c;});
+  const turf=spr[GRASS][0];
+  spr[GRASS]=set('rock','rgba(170,110,60,.14)',x=>x.drawImage(turf,0,0,32,9,0,0,TT,36));
+  spr[DIRT]=set('rock','rgba(170,110,60,.14)');spr[STONE]=set('rock','rgba(30,20,14,.2)');spr[DEEP]=set('rock','rgba(46,24,66,.42)');spr[GRAN]=set('rock','rgba(18,14,30,.58)');
+  bg[DIRT]=set('wall',null);bg[STONE]=set('wall','rgba(10,6,4,.2)');bg[DEEP]=set('wall','rgba(30,16,46,.4)');bg[GRAN]=set('wall','rgba(12,10,22,.5)');}
+// base tiles: painted ones are scaled smoothly, code-drawn ones stay crisp
+const tileAt2=(im,x,y,w,h)=>{if(im.width>32){g.imageSmoothingEnabled=true;g.drawImage(im,x,y,w,h);g.imageSmoothingEnabled=false;}else g.drawImage(im,x,y,w,h);};
 const paint=(im,x,y,w,h)=>{g.imageSmoothingEnabled=true;g.drawImage(im,x,y,w,h);g.imageSmoothingEnabled=false;};
 function townProps(){const P=tilePx,px=Math.max(1,P*.03),R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);},wood=mix('#6b4a2c','#2a2230',nightK*.6),woodD=mix('#3f2a18','#1a1622',nightK*.6);
   const line=(x1,y1,x2,y2,w,c)=>{g.strokeStyle=c;g.lineWidth=w;g.lineCap='round';g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();};
@@ -1299,7 +1310,7 @@ function draw(){
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=idx(x,y),t=W[i],X=x*P,Y=y*P,hh=hash(x,y);
     if(t){const ore=isHid(t),exp=exposed(x,y),hidden=ore&&!exp,shown=hidden?host(y):t;const s=S[i];const jx=s>.5?(Math.random()-.5)*s*P*.08:0;
       const tn=WN(x*.21,y*.27)-.5,tint=()=>{g.fillStyle=tn>0?`rgba(255,236,200,${(tn*.2).toFixed(3)})`:`rgba(0,0,0,${(-tn*.34).toFixed(3)})`;g.fillRect(X+jx,Y,P+1,P+1);};
-      if(OV[shown]){g.drawImage(pv(spr[host(y)],hh),X+jx,Y,P+1,P+1);tint();g.drawImage(OV[shown][(hh>>>3)%3],X+jx,Y,P+1,P+1);}else{g.drawImage(pv(spr[shown],hh),X+jx,Y,P+1,P+1);if(shown<=GRAN&&shown!==GRASS)tint();}
+      if(OV[shown]){tileAt2(pv(spr[host(y)],hh),X+jx,Y,P+1,P+1);tint();g.drawImage(OV[shown][(hh>>>3)%3],X+jx,Y,P+1,P+1);}else{tileAt2(pv(spr[shown],hh),X+jx,Y,P+1,P+1);if(shown<=GRAN&&shown!==GRASS)tint();}
       if(hidden&&KNOWN[i]){g.globalAlpha=.8;g.drawImage(OV[t]?OV[t][(hh>>>3)%3]:spr[t][0],X,Y,P+1,P+1);g.globalAlpha=1;g.strokeStyle='rgba(255,210,94,.55)';g.lineWidth=Math.max(1,P*.04);g.strokeRect(X+2,Y+2,P-4,P-4);glow.push([x,y,.3]);}
       if(exp&&!ore&&t!==BED&&t!==GRASS){let near=0;for(let a=-1;a<=1&&!near;a++)for(let b=-1;b<=1;b++){const n=get(x+a,y+b);if(isOre(n)||n===LODE){near=n===LODE?GOLD:n;break;}}
         if(near){for(let k=0;k<4;k++){const fx=X+P*(.14+((hh>>(k*3))%7)/10),fy=Y+P*(.14+((hh>>(k*3+9))%7)/10),fs=Math.max(2,P*.07);g.fillStyle=ICOL[near][0];g.fillRect(fx-1,fy-1,fs+2,fs+2);g.fillStyle=ICOL[near][2];g.fillRect(fx,fy,fs,fs);g.fillStyle=ICOL[near][3];g.fillRect(fx,fy,fs*.45,fs*.45);}
@@ -1320,7 +1331,7 @@ function draw(){
       if(aR){g.fillStyle='rgba(12,7,4,.55)';g.fillRect(X+P-e,Y,e,P);}
       if(t===GRASS&&aT){const sway=Math.sin(time*1.5+x*.9)*P*.035;for(let k=0;k<6;k++){const bx=X+P*(.06+k*.16+((hh>>(k*2))%4)*.02),bh=P*(.1+((hh>>(k*3+2))%5)*.035);g.fillStyle=k%2?'#b3ab58':'#878a3f';g.beginPath();g.moveTo(bx-P*.035,Y+e1);g.lineTo(bx+sway*(1+k%3*.4),Y-bh);g.lineTo(bx+P*.04,Y+e1);g.fill();}
         if(hh%7===0){const fx=X+P*(.2+(hh%50)/100),fy=Y-P*.2;g.fillStyle='#3f7a2a';g.fillRect(fx,fy,e1,P*.2);g.fillStyle=(hh>>4)%2?'#ffe07a':'#f4f0ff';g.beginPath();g.arc(fx+sway*.6,fy,P*.055,0,7);g.fill();}}
-    }else if(y>SURF[x]){const bt=y>GRANROW?GRAN:y>DEEPROW?DEEP:y>SURF[x]+5?STONE:DIRT;g.drawImage(pv(bg[bt],hh),X,Y,P+1,P+1);
+    }else if(y>SURF[x]){const bt=y>GRANROW?GRAN:y>DEEPROW?DEEP:y>SURF[x]+5?STONE:DIRT;tileAt2(pv(bg[bt],hh),X,Y,P+1,P+1);
       if(y>WT){g.fillStyle='rgba(60,110,150,.10)';g.fillRect(X,Y,P,P);}
       if(solid(x,y-1))g.drawImage(AOT,X,Y,P+1,P*.6);if(solid(x-1,y))g.drawImage(AOL,X,Y,P*.6,P+1);if(solid(x+1,y))g.drawImage(AOR,X+P*.4,Y,P*.6+1,P+1);if(solid(x,y+1))g.drawImage(AOB,X,Y+P*.5,P+1,P*.5+1);}
     const o=O[i];
