@@ -95,6 +95,7 @@ It is built from four source files:
 | `src/helpers.js` | Colour and sound helpers |
 | `src/tiles.js` | Tile and ore art, drawn in code |
 | `src/game.js` | The game |
+| `art/*.webp` | Painted images for the town buildings, windmill, water tower, hoist frame, price board and ladder |
 
 Build the page with:
 
@@ -102,7 +103,11 @@ Build the page with:
 python3 build.py
 ```
 
-That writes `deepvein.html`. GitHub Pages serves the repository root from
+That writes `deepvein.html`, with the images in `art/` embedded so it stays one self-contained file. Everything else on screen is drawn by code.
+
+The painted images were generated on a plain green background (the originals are in `art/source/`). `python3 tools/make_art.py` keys the green out, splits the sheets and writes the pieces to `art/`. It needs Pillow and NumPy. If an image is missing, the game falls back to drawing that thing in code.
+
+GitHub Pages serves the repository root from
 `main`, so a pushed build is live a minute or two later.
 
 ### Tests
