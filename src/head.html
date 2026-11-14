@@ -60,6 +60,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .card .sub{color:var(--muted);margin:2px 0 8px;font-size:.95rem}
 .rowitem{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
 .rowitem .nm{font-weight:600}
+.rowitem.shop{grid-template-columns:1fr 4.2rem auto}
+.rowitem.shop .have{grid-row:1 / span 2;grid-column:2;text-align:center;font-family:var(--label);font-weight:700;font-size:1.25rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.rowitem.shop .have.num{color:var(--gold)}
+.rowitem.shop .act{grid-column:3;min-width:11.5rem;justify-content:flex-end}
+.rowitem.shophead{border-top:0;padding:2px 0;font-family:var(--label);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rowitem.shophead .have{font-size:.72rem;font-weight:600;grid-row:auto}
+.have.bump{animation:bump .5s ease-out}
+@keyframes bump{0%{transform:scale(1.7);color:var(--ok)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.have.bump{animation:none}}
 .rowitem .ds{color:var(--muted);font-size:.86rem;grid-column:1}
 .rowitem .act{grid-row:1 / span 2;grid-column:2;display:flex;gap:6px;align-items:center}
 .price{font-family:var(--label);font-weight:700;color:var(--ok);font-variant-numeric:tabular-nums}

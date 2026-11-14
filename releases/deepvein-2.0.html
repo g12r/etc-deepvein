@@ -65,6 +65,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .card .sub{color:var(--muted);margin:2px 0 8px;font-size:.95rem}
 .rowitem{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
 .rowitem .nm{font-weight:600}
+.rowitem.shop{grid-template-columns:1fr 4.2rem auto}
+.rowitem.shop .have{grid-row:1 / span 2;grid-column:2;text-align:center;font-family:var(--label);font-weight:700;font-size:1.25rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.rowitem.shop .have.num{color:var(--gold)}
+.rowitem.shop .act{grid-column:3;min-width:11.5rem;justify-content:flex-end}
+.rowitem.shophead{border-top:0;padding:2px 0;font-family:var(--label);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rowitem.shophead .have{font-size:.72rem;font-weight:600;grid-row:auto}
+.have.bump{animation:bump .5s ease-out}
+@keyframes bump{0%{transform:scale(1.7);color:var(--ok)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.have.bump{animation:none}}
 .rowitem .ds{color:var(--muted);font-size:.86rem;grid-column:1}
 .rowitem .act{grid-row:1 / span 2;grid-column:2;display:flex;gap:6px;align-items:center}
 .price{font-family:var(--label);font-weight:700;color:var(--ok);font-variant-numeric:tabular-nums}
@@ -712,8 +721,9 @@ function openStore(msg){
   const rows=SHOP.map(it=>{if(it.sec)return `<h4>${it.sec}</h4>`;const owned=it.once&&it.once(),locked=rk<it.r,blocked=it.needs&&!it.needs(),pr=priceOf(it),deal=G.deal===it.id;
     let act;if(owned)act='<span class="ds">Owned</span>';else if(locked)act=`<span class="lock">Unlocks at ${RANKS[it.r][0]}</span>`;else if(blocked)act=`<span class="lock">${it.needsText}</span>`;
     else act=`<span class="price">$${pr}</span><button class="btn" data-buy="${it.id}" data-q="1" ${G.money<pr?'disabled':''}>Buy</button>${it.bulk?`<button class="ghost" data-buy="${it.id}" data-q="${it.bulk}" ${G.money<pr*it.bulk?'disabled':''}>\u00d7${it.bulk}</button>`:''}`;
-    return `<div class="rowitem${locked?' locked':''}"><span class="nm">${it.name}${deal&&!locked?' <span class="dealtag">Deal of the day</span>':''}</span><span class="ds">${it.ds}${it.once||locked?'':` You have ${G.pack[it.id]}.`}</span><div class="act">${act}</div></div>`;}).join('');
-  const ov=overlay(`<h3>General Store</h3><div class="sub">Cash: <span class="price">$${G.money}</span>. Rank: <b>${RANKS[rk][0]}</b>. What you buy goes in your pack, and you carry it down yourself.</div><div data-math></div>${rows}<div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+    const have=it.once?(owned?'\u2713':'\u2013'):G.pack[it.id];
+    return `<div class="rowitem shop${locked?' locked':''}"><span class="nm">${it.name}${deal&&!locked?' <span class="dealtag">Deal of the day</span>':''}</span><span class="ds">${it.ds}</span><span class="have${it.once?'':' num'}" ${it.once?'':`data-have="${it.id}"`} title="In your pack">${have}</span><div class="act">${act}</div></div>`;}).join('');
+  const ov=overlay(`<h3>General Store</h3><div class="sub">Cash: <span class="price" data-storecash>$${G.money}</span>. Rank: <b>${RANKS[rk][0]}</b>. What you buy goes in your pack, and you carry it down yourself.</div><div data-math></div><div class="rowitem shop shophead"><span>Item</span><span class="have">In pack</span><span class="act"></span></div>${rows}<div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);
   ov.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>{
     const it=SHOP.find(s=>s.id===b.dataset.buy),q=+b.dataset.q,pr=priceOf(it);
@@ -728,7 +738,7 @@ function openStore(msg){
       setTimeout(()=>openStore(),1500);});
   }));
 }
-function buy(it,q,cost){if(G.money<cost)return;G.money-=cost;SFX.coins();flag('bought');
+function buy(it,q,cost){if(G.money<cost)return;G.money-=cost;SFX.coins();flag('bought');setTimeout(()=>{document.querySelectorAll('[data-have]').forEach(el=>{const n=G.pack[el.dataset.have];if(String(n)!==el.textContent){el.textContent=n;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}});document.querySelectorAll('[data-storecash]').forEach(el=>{el.textContent='$'+G.money;});},0);
   const id=it.id;if(id==='lantern')G.lantern=7.6;else if(id==='sack')G.cap=Math.max(G.cap,12);else if(id==='sack2')G.cap=20;else if(id==='steel')G.pick=3;else if(id==='diamond')G.pick=4;
   else if(id==='tank'){G.shift=480;G.oil=100;}else if(id==='carbide'){G.carbide=true;G.oil=100;}
   else{G.pack[id]+=q;if(['belt','rail','pump','hoist','cart','lift','drill','lamp'].includes(id)){G.f['had_'+id]=true;once('kit_'+id,`${it.name} is in your pack. Pick it from the toolbar to place it.`);}}hud();save();}
@@ -1596,7 +1606,10 @@ function headframe(H){const P=tilePx,base=SURF[H.x]*P,wx=(H.x+.5)*P,wy=base-5*P,
   g.lineWidth=P*.12;g.beginPath();g.arc(wx,wy,P*.75,0,7);g.stroke();g.lineWidth=P*.06;g.beginPath();for(let k=0;k<2;k++){const a=rot+k*Math.PI/2;g.moveTo(wx-Math.cos(a)*P*.75,wy-Math.sin(a)*P*.75);g.lineTo(wx+Math.cos(a)*P*.75,wy+Math.sin(a)*P*.75);}g.stroke();
   }
   g.fillStyle='#4a3a2a';g.fillRect((hx+2.2)*P,base-1.2*P,P*1.3,P*1.2);g.fillStyle='#2b1d12';g.beginPath();g.arc((hx+2.85)*P,base-.6*P,P*.35,0,7);g.fill();
-  const by=H.y*P;g.strokeStyle='#2b1d12';g.lineWidth=Math.max(1.5,P*.05);g.beginPath();g.moveTo(wx,wy+P*.75);g.lineTo(wx,by+P*.2);g.stroke();
+  const by=H.y*P;{const y1=wy+P*.3,y2=by+P*.2,rw=Math.max(3,P*.1);g.lineCap='butt';g.strokeStyle='#5a3d1c';g.lineWidth=rw+Math.max(1.5,P*.03);g.beginPath();g.moveTo(wx,y1);g.lineTo(wx,y2);g.stroke();g.strokeStyle='#e2bd7c';g.lineWidth=rw;g.beginPath();g.moveTo(wx,y1);g.lineTo(wx,y2);g.stroke();
+    g.strokeStyle='#f6e2b0';g.lineWidth=Math.max(1,rw*.3);g.beginPath();g.moveTo(wx-rw*.22,y1);g.lineTo(wx-rw*.22,y2);g.stroke();
+    // the twist: slanted strands that travel with the bucket
+    g.save();g.beginPath();g.rect(wx-rw/2,y1,rw,y2-y1);g.clip();g.strokeStyle='rgba(120,78,30,.85)';g.lineWidth=Math.max(1,rw*.26);const st=rw*.95,off=((H.y*P)%st+st)%st;g.beginPath();for(let yy=y1-st+off;yy<y2+st;yy+=st){g.moveTo(wx-rw*.7,yy+rw*.55);g.lineTo(wx+rw*.7,yy-rw*.55);}g.stroke();g.restore();}
   g.fillStyle='#6b6f75';g.beginPath();g.moveTo(wx-P*.42,by+P*.3);g.lineTo(wx+P*.42,by+P*.3);g.lineTo(wx+P*.32,by+P);g.lineTo(wx-P*.32,by+P);g.fill();
   g.strokeStyle='#3a3d42';g.lineWidth=Math.max(1,P*.04);g.beginPath();g.arc(wx,by+P*.32,P*.42,Math.PI,0);g.stroke();
   if(cnt(H.load)){g.fillStyle=domCol(H.load);g.beginPath();g.arc(wx,by+P*.32,P*.25,Math.PI,0);g.fill();}}
@@ -1863,6 +1876,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={buy,openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
