@@ -1169,8 +1169,27 @@ function hitPlayer(bx){if(p.stun>0)return;award('cavein');p.stun=1;p.vy=-5;p.vx=
   const drop=Math.ceil(load_()/2);let n=0;for(let i=0;i<drop;i++){const t=pop(G.sack);items.push({x:p.x+(Math.random()-.5),y:p.y-1,vy:-5,vx:(Math.random()-.5)*5,t,cool:1.2});n++;}
   hud();toast(n?`Cave-in! Rocks knocked ${n} piece${n>1?'s':''} of ore out of your sack. Prop up your roofs with timber!`:'Cave-in! Prop up your roofs with timber!',3600,true);}
 
+/* ---------- timber posts follow the tunnel ---------- */
+// When the floor under a post (or the roof over it) is dug away, the post is spliced longer to reach the new one, up to 4 blocks.
+// Growing past 2 blocks takes one more timber from the pack. If the gap is too tall, or there is no timber to splice, the post comes loose and goes back in the pack.
+let postT=0;
+function settlePosts(dt){postT-=dt;if(postT>0)return;postT=.2;
+  for(let x=1;x<COLS-1;x++)for(let y=1;y<ROWS-1;y++){if(O[idx(x,y)]!==TIMBER||O[idx(x,y-1)]===TIMBER)continue;
+    let a=y,b=y;while(O[idx(x,b+1)]===TIMBER)b++;const old=b-a+1;
+    for(let k=a;k<=b;k++)if(W[idx(x,k)]!==AIR)O[idx(x,k)]=0;            // rock has filled part of it
+    if(solid(x,a-1)&&solid(x,b+1)){y=b;continue;}
+    const free=(xx,yy)=>get(xx,yy)===AIR&&!obj(xx,yy)&&!drillAt(xx,yy)&&!pumpAt(xx,yy);
+    let na=a,nb=b;while(nb-na<4&&nb<ROWS-2&&free(x,nb+1))nb++;while(nb-na<4&&na>SURF[x]+1&&free(x,na-1))na--;
+    const h=nb-na+1,extra=timberCost(h)-timberCost(old),fits=h<=4&&solid(x,na-1)&&solid(x,nb+1);
+    if(fits&&G.pack.timber>=extra){for(let k=na;k<=nb;k++)O[idx(x,k)]=TIMBER;G.pack.timber-=extra;SFX.place();
+      if(extra>0)toast('The post was spliced longer to reach. That took 1 more timber.',3200);else once('poststretch','Timber posts stretch to reach a new floor or roof, up to 4 blocks tall.');}
+    else{for(let k=a;k<=b;k++)O[idx(x,k)]=0;G.pack.timber+=timberCost(old);
+      toast(fits?'No spare timber to splice the post longer, so it came loose. It is back in your pack.':'That gap is too tall for a post (4 blocks at most). It came loose and is back in your pack.',4200,true);}
+    hud();y=nb;}}
+
 /* ---------- stability ---------- */
 function evaluate(dt){
+  settlePosts(dt);
   UNS.fill(0);
   for(let y=1;y<ROWS-1;y++){let x=1;while(x<COLS-1){if(W[idx(x,y)]!==AIR){x++;continue;}const xl=x-1;let xr=x;while(xr<COLS-1&&W[idx(xr,y)]===AIR)xr++;
       const tim=[];for(let k=xl+1;k<xr;k++)if(O[idx(k,y)]===TIMBER)tim.push(k);
@@ -1218,7 +1237,8 @@ let tilePx=32,offX=0,offY=0;
 function tileAt(e){const r=cv.getBoundingClientRect(),dpr=cv.width/r.width,fx=((e.clientX-r.left)*dpr-offX)/tilePx,fy=((e.clientY-r.top)*dpr-offY)/tilePx;return [Math.floor(fx),Math.floor(fy),fx,fy];}
 const RANGE={ladder:2,dyn:2,hoist:2,survey:3};
 // how many blocks of gap lie between the miner's body and a tile
-const gapTo=(tx,ty)=>Math.max(Math.max(0,Math.abs(tx+.5-p.x)-.5-p.w/2),Math.max(0,(p.y-p.h)-(ty+1),ty-p.y));
+// Straight overhead he can stretch one block further than to the sides or down.
+const gapTo=(tx,ty)=>{const side=Math.max(0,Math.abs(tx+.5-p.x)-.5-p.w/2),up=(p.y-p.h)-(ty+1);return Math.max(side,Math.max(0,side===0?up-1:up,ty-p.y));};
 const reach=(tx,ty,r)=>gapTo(tx,ty)<(r||RANGE[G.tool]||1);
 const DRAGTOOLS=['ladder','fill','rail','belt'];let dragPlace=false,lastPlace='';
 cv.addEventListener('pointermove',e=>{const [tx,ty,fx,fy]=tileAt(e);Object.assign(mouse,{x:tx,y:ty,fx,fy,in:true});
@@ -1979,6 +1999,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
-window.__mine={HP:()=>HP,spritesReady,buy,openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
+window.__mine={HP:()=>HP,obj,spritesReady,buy,openParent,parentPanel,pickFact,pickRow,get facts(){return FS;},callOil,FAST,openStore,BEAM:()=>BEAM,openMenu,saveGame,loadGame,deleteGame,saveList,snap,reach,gapTo,timberSpan,timberCost,pickup,callRat,spawnRat,rats:()=>rats,ratPath,ORE,bag,cnt,COLS,ROWS,gotFossil,blastShape,explode,SEEN:()=>SEEN,PROX:()=>PROX,lamps:()=>lamps,endDay,openAssay,openJournal,openPerk,pendingPerks,lodeFound,openChest,dig,perk,get G(){return G;},get p(){return p;},W:()=>W,O:()=>O,WA:()=>WA,KNOWN:()=>KNOWN,idx,place,setTool,SURF:()=>SURF,hoists:()=>hoists,lifts:()=>lifts,drills:()=>drills,pumps:()=>pumps,carts:()=>carts,items:()=>items,save,earn,reveal,pickFact,FS:()=>FS,interact,record};
 })();
 </script>
