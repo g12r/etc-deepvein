@@ -950,6 +950,7 @@ function interact(){const z=zone();if(!z)return;
 /* ---------- physics ---------- */
 function resize(){const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=Math.max(1,Math.round(stage.clientWidth*dpr));cv.height=Math.max(1,Math.round(stage.clientHeight*dpr));dark.width=cv.width;dark.height=cv.height;}
 new ResizeObserver(resize).observe(stage);resize();
+let ladT=0,ladOff=false; // how long left/right has been held on a ladder, and whether he has just stepped off one
 function onLadder(down){const cx=Math.floor(p.x);for(let y=Math.floor(p.y-p.h);y<=Math.floor(p.y-1e-6);y++)if(obj(cx,y)===LADDER)return true;return down&&obj(cx,Math.floor(p.y+.01))===LADDER;}
 // Only the edge the miner is moving toward is tested, so a wall at head height can never lift him onto it.
 function moveX(dx){if(!dx)return;p.x+=dx;const y0=Math.floor(p.y-p.h+1e-6),y1=Math.floor(p.y-1e-6);
@@ -959,7 +960,7 @@ function moveY(dy,down){if(!dy)return;const prev=p.y;p.y+=dy;const x0=Math.floor
   if(dy>0){const ty=Math.floor(p.y-1e-6);for(let tx=x0;tx<=x1;tx++)if(solid(tx,ty)){p.y=ty;p.vy=0;p.ground=true;return;}
     const cx=Math.floor(p.x);
     if(!p.climb){const L=liftAt(cx);if(L&&prev<=L.y+1e-4&&p.y>=L.y){p.y=L.y;p.vy=0;p.ground=true;p.onLift=L;return;}}
-    if(!p.climb&&!down){const t2=Math.floor(p.y);if(prev<=t2+1e-6&&p.y>t2&&obj(cx,t2)===LADDER&&obj(cx,t2-1)!==LADDER&&get(cx,t2-1)===AIR){p.y=t2;p.vy=0;p.ground=true;}}}
+    if(!p.climb&&!down){const t2=Math.floor(p.y);if(prev<=t2+1e-6&&p.y>t2&&obj(cx,t2)===LADDER&&get(cx,t2-1)===AIR){p.y=t2;p.vy=0;p.ground=true;}}}
   else{const ty=Math.floor(p.y-p.h);for(let tx=x0;tx<=x1;tx++)if(solid(tx,ty)){p.y=ty+1+p.h;p.vy=0;return;}}}
 
 function update(dt){
@@ -989,7 +990,12 @@ function update(dt){
     else{
       if(p.onLift&&J){p.onLift=null;p.vy=-9.6;p.ground=false;}
       const lad=onLadder(D);
-      if(lad&&(U||D))p.climb=true;if(!lad)p.climb=false;
+      // Up or down grabs the ladder and centres him on it. On the ladder he stays on its line: a tap of left or right does nothing,
+      // but holding it for a moment makes him step off, and he will not grab it again until the key is let go.
+      if(!lad||L_===R_)ladOff=false;
+      if(lad&&(U||D)&&!ladOff)p.climb=true;if(!lad)p.climb=false;
+      if(p.climb&&L_!==R_){ladT+=dt;if(ladT>.16){p.climb=false;ladOff=true;p.vx=(R_?1:-1)*walk;}}else ladT=0;
+      if(p.climb){p.x=Math.floor(p.x)+.5;p.vx=0;}
       if(swim&&!p.climb){if(U||J)p.vy=Math.max(p.vy-34*dt,-5.6);else if(D)p.vy=Math.min(p.vy+12*dt,3);else p.vy+=(-1.6-p.vy)*Math.min(1,dt*5);once('swim','Splash! You hit the water table. You float. Hold jump to swim up and hop out, or S to dive. Digging is slower underwater. Pumps (Prospector rank) drain it.',true);}
       else{
         if(J&&(p.ground||p.climb)){p.vy=-9.6;p.climb=false;p.ground=false;}
