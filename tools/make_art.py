@@ -281,6 +281,34 @@ start += int(np.argmin(np.convolve(ties[start:start + tper], np.ones(5) / 5, 'sa
 add('rail', rail.crop((start, 0, start + tper * 3, rail.size[1])), width=128)
 print('rail: ties every %d px; the section holds 3' % tper)
 
+# ---- ore, crystals, geode and chest; loose nuggets and gems, fossils, rubble, and toolbar icons ----
+ores = frames_from('ores.png', 4, 2)
+for n, fr, w in zip(['o_gold', 'o_copper', 'o_silver', 'o_lode', 'o_gem', 'o_ruby', 'o_geode', 'chest'], ores, [112, 112, 112, 128, 104, 104, 100, 120]):
+    add(n, fr, width=w)
+small = frames_from('items.png', 5, 3)
+for n, fr, w in zip(['n_gold', 'n_copper', 'n_silver', 'n_gem', 'n_ruby', 'fossil1', 'fossil2', 'fossil3', 'rubble', 'i_pick',
+                     'i_dyn', 'i_map', 'i_rock', 'i_flask', 'i_sack'], small, [52, 52, 52, 48, 48, 96, 104, 104, 128, 72, 72, 72, 64, 56, 64]):
+    add(n, fr, width=w)
+
+# ---- the two strips of hills behind the town: kept as their own wide images ----
+hills = key('hills.png')
+ha = np.asarray(hills)[..., 3] > 60
+rows_on = ha.mean(axis=1) > .002
+bands, start = [], None
+for y, on in enumerate(rows_on):
+    if on and start is None:
+        start = y
+    if not on and start is not None:
+        bands.append((start, y)); start = None
+if start is not None:
+    bands.append((start, len(rows_on)))
+bands = sorted(bands, key=lambda b: b[0] - b[1])[:2]        # the two tallest bands
+bands.sort()
+for nm, (y0, y1) in zip(['hills_far', 'hills_near'], bands):
+    strip = hills.crop((0, y0, hills.size[0], y1))
+    strip.save(os.path.join(OUT, nm + '.webp'), 'WEBP', quality=88, method=6)
+    print('%-10s %4d x %-4d %6d bytes' % (nm, strip.size[0], strip.size[1], os.path.getsize(os.path.join(OUT, nm + '.webp'))))
+
 # pack in rows
 meta, x, y, rowh, W = {}, 0, 0, 0, 1024
 placed = []

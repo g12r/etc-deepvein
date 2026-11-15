@@ -257,6 +257,13 @@ const TOOLICON={
   lift:'<rect x="6" y="5" width="12" height="15" fill="none" stroke="#b7bfc8" stroke-width="1.6"/><path d="M10 5v9M14 5v9M12 2v3" stroke="#b7bfc8" stroke-width="1.2"/><rect x="5" y="18" width="14" height="2.4" fill="#5b636d"/>',
   drill:'<rect x="4" y="8" width="10" height="9" rx="1" fill="#8c3b25" stroke="#3d160c" stroke-width="1"/><path d="M14 9l7 3.5-7 3.5z" fill="#cfd4da" stroke="#4a4d54" stroke-width=".8"/><rect x="5" y="4" width="2.4" height="5" fill="#3a3d42"/><circle cx="7" cy="19" r="1.6" fill="#24180f"/><circle cx="12" cy="19" r="1.6" fill="#24180f"/>'};
 stage.querySelectorAll('.tool').forEach(b=>{const ic=TOOLICON[b.dataset.tool];if(ic)b.insertAdjacentHTML('afterbegin',`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>`);});
+let toolIconsDone=false;
+function toolIcons(){if(toolIconsDone||!spritesReady()||!SPR.i_pick||!AI.ladder||!AI.headframe)return;toolIconsDone=true;
+  const fit=(c,im,sx,sy,sw,sh,x0,y0,w0,h0)=>{const k=Math.min(w0/sw,h0/sh),w=sw*k,h=sh*k;c.drawImage(im,sx,sy,sw,sh,x0+(w0-w)/2,y0+(h0-h)/2,w,h);};
+  const fr=n=>(c=>{const f=SPR[n];fit(c,AI.sprites,f.x,f.y,f.w,f.h,3,3,58,58);}),img=n=>(c=>fit(c,AI[n],0,0,AI[n].width,AI[n].height,3,3,58,58));
+  const post=c=>{const a=SPR.post_cap,b=SPR.post_body,k=58/a.w;c.drawImage(AI.sprites,b.x,b.y,b.w,b.h,32-b.w*k/2,10,b.w*k,50);c.drawImage(AI.sprites,a.x,a.y,a.w,a.h,3,6,58,a.h*k);};
+  const how={pick:fr('i_pick'),ladder:img('ladder'),timber:post,fill:fr('i_rock'),dyn:fr('i_dyn'),survey:fr('i_map'),lamp:fr('lantern'),belt:fr('belt'),rail:fr('rail'),cart:fr('cart'),pump:fr('pump'),hoist:img('headframe'),lift:fr('cage'),drill:fr('drill')};
+  stage.querySelectorAll('.tool').forEach(b=>{const draw=how[b.dataset.tool],old=b.querySelector('.ic');if(!draw||!old)return;const c=document.createElement('canvas');c.width=c.height=64;c.className='ic';c.setAttribute('aria-hidden','true');draw(c.getContext('2d'));old.replaceWith(c);});}
 function setTool(t){G.tool=t;stage.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===t?'true':'false'));}
 stage.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setTool(b.dataset.tool);stage.focus({preventScroll:true});}));
 stage.querySelector('.toolbar').addEventListener('pointerdown',e=>e.stopPropagation());
@@ -1048,7 +1055,7 @@ function update(dt){
 
 /* ---------- drawing ---------- */
 // Things that stand in town between the buildings: a windmill, a water tower, and the day's prices chalked on a board.
-const AI={};Object.keys(ART).forEach(k=>{const im=new Image();im.onload=()=>{AI[k]=im;rockArt();};im.src=ART[k];});
+const AI={};Object.keys(ART).forEach(k=>{const im=new Image();im.onload=()=>{AI[k]=im;rockArt();oreArt();toolIcons();};im.src=ART[k];});
 // Painted rock and tunnel-wall tiles replace the code-drawn ones once all sixteen of each have loaded.
 // Every edge between two blocks is given one of two versions, and each block uses the tile whose four edges fit,
 // so neighbours always match and no single pattern repeats across the rock. Deeper layers are the same rock tinted.
@@ -1058,12 +1065,37 @@ function rockArt(){if(rockArtDone)return;const R16=[];for(let k=0;k<16;k++)R16.p
   const turf=spr[GRASS][0];
   spr[GRASS]=set('rock','rgba(170,110,60,.14)',x=>x.drawImage(turf,0,0,32,9,0,0,TT,36));
   spr[DIRT]=set('rock','rgba(170,110,60,.14)');spr[STONE]=set('rock','rgba(30,20,14,.2)');spr[DEEP]=set('rock','rgba(46,24,66,.42)');spr[GRAN]=set('rock','rgba(18,14,30,.58)');
-  bg[DIRT]=set('wall',null);bg[STONE]=set('wall','rgba(10,6,4,.2)');bg[DEEP]=set('wall','rgba(30,16,46,.4)');bg[GRAN]=set('wall','rgba(12,10,22,.5)');}
+  bg[DIRT]=set('wall',null);bg[STONE]=set('wall','rgba(10,6,4,.2)');bg[DEEP]=set('wall','rgba(30,16,46,.4)');bg[GRAN]=set('wall','rgba(12,10,22,.5)');
+  spr[BED]=set('rock','rgba(8,6,10,.8)');oreArt();}
+// Ore, crystals, geodes, fossils, the chest, rubble and bedrock, once both the rock tiles and the sprite atlas have loaded.
+let oreArtDone=false;
+function oreArt(){if(oreArtDone||!rockArtDone||!spritesReady()||!SPR.o_gold)return;oreArtDone=true;const TT=128;
+  // a frame set in the middle of a clear tile; three variants by flipping and turning it a little
+  const over=(name,size,turn)=>[0,1,2].map(v=>{const c=document.createElement('canvas');c.width=c.height=TT;const x=c.getContext('2d'),f=SPR[name],w=TT*size,h=w*f.h/f.w;
+    x.translate(TT/2,TT/2+(name==='o_gem'||name==='o_ruby'?TT*.06:0));if(v===1)x.scale(-1,1);if(turn)x.rotate((v-1)*turn);x.drawImage(AI.sprites,f.x,f.y,f.w,f.h,-w/2,-h/2,w,h);return c;});
+  OV[GOLD]=over('o_gold',.8,.5);OV[COPPER]=over('o_copper',.8,.5);OV[SILVER]=over('o_silver',.8,.5);OV[LODE]=over('o_lode',1,.3);OV[GEM]=over('o_gem',.74,.12);OV[RUBY]=over('o_ruby',.74,.12);OV[GEODE]=over('o_geode',.72,.6);
+  OV[FOSSIL]=['fossil1','fossil2','fossil3'].map(n=>over(n,.74,0)[0]);
+  const on=(base,top)=>{const c=document.createElement('canvas');c.width=c.height=TT;const x=c.getContext('2d');x.drawImage(base,0,0,TT,TT);x.drawImage(top,0,0,TT,TT);return c;};
+  [[GOLD,STONE],[COPPER,STONE],[SILVER,STONE],[GEODE,STONE],[FOSSIL,STONE],[GEM,DEEP],[RUBY,GRAN],[LODE,GRAN]].forEach(([o,h])=>{spr[o]=[0,1,2].map(v=>on(spr[h][v],OV[o][v]));});
+  const chest=over('chest',.86,0)[0];spr[CHEST]=[0,1,2].map(v=>on(bg[STONE][v],chest));
+  const rub=over('rubble',1,0);spr[RUB]=[0,1,2].map(v=>on(bg[STONE][v+3],rub[v]));}
 // which version the edge above block (x,y) has, and the edge on its left
 const edgeH=(x,y)=>hash(x*3+11,y*7+5)>>>4&1,edgeV=(x,y)=>hash(x*5+2,y*3+17)>>>6&1;
 // base tiles: painted ones are scaled smoothly, code-drawn ones stay crisp
 const tileAt2=(im,x,y,w,h)=>{if(im.width>32){g.imageSmoothingEnabled=true;g.drawImage(im,x,y,w,h);g.imageSmoothingEnabled=false;}else g.drawImage(im,x,y,w,h);};
 const paint=(im,x,y,w,h)=>{g.imageSmoothingEnabled=true;g.drawImage(im,x,y,w,h);g.imageSmoothingEnabled=false;};
+const hillCache={};
+function hillLayer(name){const im=AI[name],step=Math.round(dayF*24),k=name+step;if(hillCache.k===k)return hillCache.c;
+  let c=hillCache[name];if(!c){c=hillCache[name]=document.createElement('canvas');c.width=im.width;c.height=im.height;}
+  if(hillCache[name+'_step']!==step){hillCache[name+'_step']=step;const x=c.getContext('2d');x.globalCompositeOperation='source-over';x.clearRect(0,0,c.width,c.height);x.drawImage(im,0,0);
+    const dusk=clamp((dayF-.52)/.26,0,1)*(1-nightK),dawn=clamp((.16-dayF)/.16,0,1);x.globalCompositeOperation='source-atop';
+    if(dusk>0||dawn>0){x.fillStyle=`rgba(150,60,50,${.26*Math.max(dusk,dawn*.6)})`;x.fillRect(0,0,c.width,c.height);}
+    if(nightK>0){x.fillStyle=`rgba(12,16,40,${.8*nightK})`;x.fillRect(0,0,c.width,c.height);}}
+  return c;}
+// A strip repeated across the screen, each repeat mirrored against the last so the ends always meet.
+function hillStrip(name,par,h,bottom){const P=tilePx,im=AI[name],c=hillLayer(name),w=h*im.width/im.height,off=cam.x*P*par,Wd=cv.width;
+  g.imageSmoothingEnabled=true;for(let k=Math.floor(off/w)-1;k*w-off<Wd;k++){const x=k*w-off;if(x+w<0)continue;if(k&1){g.save();g.translate(x+w,bottom-h);g.scale(-1,1);g.drawImage(c,0,0,w+1,h);g.restore();}else g.drawImage(c,x,bottom-h,w+1,h);}
+  g.imageSmoothingEnabled=false;}
 function townProps(){const P=tilePx,px=Math.max(1,P*.03),R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);},wood=mix('#6b4a2c','#2a2230',nightK*.6),woodD=mix('#3f2a18','#1a1622',nightK*.6);
   const line=(x1,y1,x2,y2,w,c)=>{g.strokeStyle=c;g.lineWidth=w;g.lineCap='round';g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();};
   if(AI.windtower&&AI.windwheel){const b=SURF[12]*P,X=12.6*P,h=P*4.5,w=h*AI.windtower.width/AI.windtower.height;g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(X,b+P*.02,P*.9,P*.1,0,0,7);g.fill();
@@ -1336,9 +1368,10 @@ function draw(){
     g.fillStyle=sk.cloud;for(let k=0;k<6;k++){const h1=hash(k*5+1,33),span=VIEW+12,cx=((((h1%997)/997*span+time*(.05+k*.012)-cam.x*.1)%span)+span)%span-6,cy=hy-P*(4.2+(h1>>5)%5*1.05),sc=.8+((h1>>9)%5)*.16;g.globalAlpha=.5+.3*((h1>>3)%3)/2-nightK*.25;
       for(let j=0;j<5;j++){const ex=(cx+(j-2)*.62*sc)*P,ey=cy+Math.sin(j*2.1+k)*P*.1;g.beginPath();g.ellipse(ex,ey,P*(.75-Math.abs(j-2)*.13)*sc,P*(.4-Math.abs(j-2)*.07)*sc,0,0,7);g.fill();}}g.globalAlpha=1;
     // hills, far to near
+    if(AI.hills_far&&AI.hills_near){hillStrip('hills_far',.1,P*3.3,hy+P*.66);hillStrip('hills_near',.36,P*2.5,hy+P*.74);}else{
     [[.1,'rgba(255,255,255,'+(.3-.2*nightK)+')',3.3,.16,0,0],[.1,sk.far,3.3,.16,0,.22],[.36,'rgba(255,255,255,.1)',2.9,.31,1.7,0],[.36,sk.near,2.9,.31,1.7,.1]].forEach(([par,col,amp,f,ph,dn])=>{g.fillStyle=col;g.beginPath();g.moveTo(0,Hd);for(let X=0;X<=Wd+8;X+=6){const wx=X/P+cam.x*par;const hh=amp+Math.sin(wx*f+ph)*amp*.5+Math.sin(wx*f*2.7+1+ph)*amp*.25+Math.sin(wx*f*6.1)*amp*.06;g.lineTo(X,hy+P*.6-hh*P+dn*P*(.4+.6*Math.abs(Math.sin(wx*1.9))));}g.lineTo(Wd,Hd);g.fill();});
     // pines on the near ridge
-    g.fillStyle=mix('#4a4a2a','#0c1220',nightK);for(let k=0;k<26;k++){const wx=k*1.9+((hash(k,5)%10)/10)*1.2,X=(wx-cam.x*.55)*P-P*2;if(X<-P||X>Wd+P)continue;const th=P*(.9+(hash(k,8)%6)*.14),by=hy+P*.5;g.beginPath();g.moveTo(X,by-th);g.lineTo(X+th*.3,by-th*.45);g.lineTo(X+th*.16,by-th*.45);g.lineTo(X+th*.4,by);g.lineTo(X-th*.4,by);g.lineTo(X-th*.16,by-th*.45);g.lineTo(X-th*.3,by-th*.45);g.fill();}
+    g.fillStyle=mix('#4a4a2a','#0c1220',nightK);for(let k=0;k<26;k++){const wx=k*1.9+((hash(k,5)%10)/10)*1.2,X=(wx-cam.x*.55)*P-P*2;if(X<-P||X>Wd+P)continue;const th=P*(.9+(hash(k,8)%6)*.14),by=hy+P*.5;g.beginPath();g.moveTo(X,by-th);g.lineTo(X+th*.3,by-th*.45);g.lineTo(X+th*.16,by-th*.45);g.lineTo(X+th*.4,by);g.lineTo(X-th*.4,by);g.lineTo(X-th*.16,by-th*.45);g.lineTo(X-th*.3,by-th*.45);g.fill();}}
     const hz=g.createLinearGradient(0,hy-P*2,0,hy+P);hz.addColorStop(0,'rgba(255,255,255,0)');hz.addColorStop(1,dayF>.6&&dayF<.95?'rgba(255,170,110,.22)':'rgba(255,255,255,.12)');g.fillStyle=hz;g.fillRect(0,hy-P*2,Wd,P*3);
   }
   g.save();g.translate(offX,offY);
@@ -1352,8 +1385,8 @@ function draw(){
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=idx(x,y),t=W[i],X=x*P,Y=y*P,hh=hash(x,y);
     if(t){const ore=isHid(t),exp=exposed(x,y),hidden=ore&&!exp,shown=hidden?host(y):t;const s=S[i];const jx=s>.5?(Math.random()-.5)*s*P*.08:0;
       const tn=WN(x*.21,y*.27)-.5,tint=()=>{g.fillStyle=tn>0?`rgba(255,236,200,${(tn*.2).toFixed(3)})`:`rgba(0,0,0,${(-tn*.34).toFixed(3)})`;g.fillRect(X+jx,Y,P+1,P+1);};
-      if(OV[shown]){tileAt2(pv(spr[host(y)],hh,x,y),X+jx,Y,P+1,P+1);tint();g.drawImage(OV[shown][(hh>>>3)%3],X+jx,Y,P+1,P+1);}else{tileAt2(pv(spr[shown],hh,x,y),X+jx,Y,P+1,P+1);if(shown<=GRAN&&shown!==GRASS)tint();}
-      if(hidden&&KNOWN[i]){g.globalAlpha=.8;g.drawImage(OV[t]?OV[t][(hh>>>3)%3]:spr[t][0],X,Y,P+1,P+1);g.globalAlpha=1;g.strokeStyle='rgba(255,210,94,.55)';g.lineWidth=Math.max(1,P*.04);g.strokeRect(X+2,Y+2,P-4,P-4);glow.push([x,y,.3]);}
+      if(OV[shown]){tileAt2(pv(spr[host(y)],hh,x,y),X+jx,Y,P+1,P+1);tint();tileAt2(OV[shown][(hh>>>3)%3],X+jx,Y,P+1,P+1);}else{tileAt2(pv(spr[shown],hh,x,y),X+jx,Y,P+1,P+1);if(shown<=GRAN&&shown!==GRASS)tint();}
+      if(hidden&&KNOWN[i]){g.globalAlpha=.8;tileAt2(OV[t]?OV[t][(hh>>>3)%3]:spr[t][0],X,Y,P+1,P+1);g.globalAlpha=1;g.strokeStyle='rgba(255,210,94,.55)';g.lineWidth=Math.max(1,P*.04);g.strokeRect(X+2,Y+2,P-4,P-4);glow.push([x,y,.3]);}
       if(exp&&!ore&&t!==BED&&t!==GRASS){let near=0;for(let a=-1;a<=1&&!near;a++)for(let b=-1;b<=1;b++){const n=get(x+a,y+b);if(isOre(n)||n===LODE){near=n===LODE?GOLD:n;break;}}
         if(near){for(let k=0;k<4;k++){const fx=X+P*(.14+((hh>>(k*3))%7)/10),fy=Y+P*(.14+((hh>>(k*3+9))%7)/10),fs=Math.max(2,P*.07);g.fillStyle=ICOL[near][0];g.fillRect(fx-1,fy-1,fs+2,fs+2);g.fillStyle=ICOL[near][2];g.fillRect(fx,fy,fs,fs);g.fillStyle=ICOL[near][3];g.fillRect(fx,fy,fs*.45,fs*.45);}
           if(Math.hypot(x+.5-p.x,y+.5-p.y)<4)fleckNear=true;}
@@ -1422,8 +1455,9 @@ function draw(){
   lamps.forEach(l=>{const X=l.x*P,Y=l.y*P;if(has('lantern')){g.fillStyle='#2c2e33';g.fillRect(X+P*.48,Y,P*.04,P*.1);const f=SPR.lantern,w=P*.44;frameBox('lantern',X+P*.5-w/2,Y+P*.06,w,w*f.h/f.w);return;}g.fillStyle='#2c2e33';g.fillRect(X+P*.47,Y,P*.06,P*.24);g.strokeStyle='#2c2e33';g.lineWidth=Math.max(1,P*.035);g.beginPath();g.arc(X+P*.5,Y+P*.3,P*.1,Math.PI,0);g.stroke();
     g.fillStyle='#8a6a1e';g.fillRect(X+P*.33,Y+P*.3,P*.34,P*.07);g.fillStyle='#ffefb8';g.fillRect(X+P*.37,Y+P*.37,P*.26,P*.3);g.fillStyle='#ff9d2e';g.beginPath();g.ellipse(X+P*.5,Y+P*.56,P*.05,P*(.09+.02*Math.sin(time*13+l.x)),0,0,7);g.fill();
     g.fillStyle='#2c2e33';g.fillRect(X+P*.36,Y+P*.37,P*.025,P*.3);g.fillRect(X+P*.615,Y+P*.37,P*.025,P*.3);g.fillStyle='#8a6a1e';g.fillRect(X+P*.33,Y+P*.67,P*.34,P*.07);});
-  falling.forEach(b=>g.drawImage(spr[b.t][0],b.x*P,b.y*P,P+1,P+1));
-  items.forEach(it=>{const X=it.x*P,Y=it.y*P,c=ICOL[it.t]||ICOL[GOLD];if(isMetal(it.t)){g.fillStyle=c[0];g.beginPath();g.arc(X,Y,P*.21,0,7);g.fill();g.fillStyle=c[1];g.beginPath();g.arc(X,Y,P*.17,0,7);g.fill();g.fillStyle=c[2];g.beginPath();g.arc(X-P*.03,Y-P*.03,P*.12,0,7);g.fill();g.fillStyle=c[3];g.beginPath();g.arc(X-P*.07,Y-P*.07,P*.045,0,7);g.fill();}
+  falling.forEach(b=>tileAt2(spr[b.t][0],b.x*P,b.y*P,P+1,P+1));
+  items.forEach(it=>{const X=it.x*P,Y=it.y*P,c=ICOL[it.t]||ICOL[GOLD],nm={[GOLD]:'n_gold',[COPPER]:'n_copper',[SILVER]:'n_silver',[GEM]:'n_gem',[RUBY]:'n_ruby'}[it.t];
+    if(nm&&has(nm)){const w=P*.42,f=SPR[nm];frameBox(nm,X-w/2,Y-w*f.h/f.w/2,w,w*f.h/f.w);return;}if(isMetal(it.t)){g.fillStyle=c[0];g.beginPath();g.arc(X,Y,P*.21,0,7);g.fill();g.fillStyle=c[1];g.beginPath();g.arc(X,Y,P*.17,0,7);g.fill();g.fillStyle=c[2];g.beginPath();g.arc(X-P*.03,Y-P*.03,P*.12,0,7);g.fill();g.fillStyle=c[3];g.beginPath();g.arc(X-P*.07,Y-P*.07,P*.045,0,7);g.fill();}
     else{g.fillStyle=c[0];g.beginPath();g.moveTo(X,Y-P*.26);g.lineTo(X+P*.21,Y);g.lineTo(X,Y+P*.26);g.lineTo(X-P*.21,Y);g.fill();g.fillStyle=c[1];g.beginPath();g.moveTo(X,Y-P*.22);g.lineTo(X+P*.17,Y);g.lineTo(X,Y+P*.22);g.lineTo(X-P*.17,Y);g.fill();g.fillStyle=c[2];g.beginPath();g.moveTo(X,Y-P*.22);g.lineTo(X+P*.17,Y);g.lineTo(X,Y);g.fill();g.fillStyle=c[3];g.fillRect(X-P*.06,Y-P*.1,P*.04,P*.08);}});
   scans.forEach(s=>{g.strokeStyle=`rgba(255,210,94,${Math.min(1,s.life)})`;g.lineWidth=Math.max(2,P*.08);g.setLineDash([P*.3,P*.15]);g.strokeRect(s.x0*P,s.y0*P,s.a*P,s.b*P);g.setLineDash([]);g.fillStyle=`rgba(255,210,94,${Math.min(.15,s.life*.06)})`;g.fillRect(s.x0*P,s.y0*P,s.a*P,s.b*P);});
   if(mouse.in&&!ovEl){const mx=mouse.x,my=mouse.y,X=mx*P,Y=my*P,ok=reach(mx,my);g.lineWidth=Math.max(2,P*.07);const air=get(mx,my)===AIR&&!obj(mx,my);
