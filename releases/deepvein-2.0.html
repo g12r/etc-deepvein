@@ -1781,7 +1781,12 @@ function draw(){
       if(OV[shown]){tileAt2(pv(spr[host(y)],hh,x,y),X+jx,Y,P+1,P+1);tint();tileAt2(OV[shown][(hh>>>3)%3],X+jx,Y,P+1,P+1);}else{tileAt2(pv(spr[shown],hh,x,y),X+jx,Y,P+1,P+1);if(shown<=GRAN&&shown!==GRASS)tint();}
       if(hidden&&KNOWN[i]){g.globalAlpha=.8;tileAt2(OV[t]?OV[t][(hh>>>3)%3]:spr[t][0],X,Y,P+1,P+1);g.globalAlpha=1;g.strokeStyle='rgba(255,210,94,.55)';g.lineWidth=Math.max(1,P*.04);g.strokeRect(X+2,Y+2,P-4,P-4);glow.push([x,y,.3]);}
       if(exp&&!ore&&t!==BED&&t!==GRASS){let near=0;for(let a=-1;a<=1&&!near;a++)for(let b=-1;b<=1;b++){const n=get(x+a,y+b);if(isOre(n)||n===LODE){near=n===LODE?GOLD:n;break;}}
-        if(near){for(let k=0;k<4;k++){const fx=X+P*(.14+((hh>>(k*3))%7)/10),fy=Y+P*(.14+((hh>>(k*3+9))%7)/10),fs=Math.max(2,P*.07);g.fillStyle=ICOL[near][0];g.fillRect(fx-1,fy-1,fs+2,fs+2);g.fillStyle=ICOL[near][2];g.fillRect(fx,fy,fs,fs);g.fillStyle=ICOL[near][3];g.fillRect(fx,fy,fs*.45,fs*.45);}
+        const fnm={[GOLD]:'n_gold',[COPPER]:'n_copper',[SILVER]:'n_silver',[GEM]:'n_gem',[RUBY]:'n_ruby'}[near];
+        if(near&&fnm&&has(fnm)){ // flecks: a few tiny painted nuggets or gem chips bedded in the rock, each a different size and turned a different way
+          const f=SPR[fnm];for(let k=0;k<4;k++){const fx=X+P*(.18+((hh>>>(k*3))%7)/10),fy=Y+P*(.18+((hh>>>(k*3+9))%7)/10),w=P*(.1+((hh>>>(k*4+2))%4)*.022),h=w*f.h/f.w;
+            g.fillStyle='rgba(20,10,4,.45)';g.beginPath();g.ellipse(fx+w*.06,fy+h*.12,w*.56,h*.5,0,0,7);g.fill();g.save();g.translate(fx,fy);g.rotate(((hh>>>(k*5))%12)*.52);frameBox(fnm,-w/2,-h/2,w,h);g.restore();}
+          if(Math.hypot(x+.5-p.x,y+.5-p.y)<4)fleckNear=true;}
+        else if(near){for(let k=0;k<4;k++){const fx=X+P*(.14+((hh>>(k*3))%7)/10),fy=Y+P*(.14+((hh>>(k*3+9))%7)/10),fs=Math.max(2,P*.07);g.fillStyle=ICOL[near][0];g.fillRect(fx-1,fy-1,fs+2,fs+2);g.fillStyle=ICOL[near][2];g.fillRect(fx,fy,fs,fs);g.fillStyle=ICOL[near][3];g.fillRect(fx,fy,fs*.45,fs*.45);}
           if(Math.hypot(x+.5-p.x,y+.5-p.y)<4)fleckNear=true;}
         else if((t===STONE||t===DEEP||t===GRAN)&&has('vein1')&&PROX[i]>=2&&PROX[i]<=qLim){const qd=PROX[i],nm=qd===2?'vein2':'vein1',f=SPR[nm],w=P*(qd===2?.96:qd===3?.92:.8),h=w*f.h/f.w*(qd===2?.62:.7);
           // a painted vein across the block, flipped and nudged per block so a run of them does not look stamped
