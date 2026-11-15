@@ -1392,7 +1392,8 @@ function draw(){
           if(Math.hypot(x+.5-p.x,y+.5-p.y)<4)fleckNear=true;}
         else if((t===STONE||t===DEEP||t===GRAN)&&has('vein1')&&PROX[i]>=2&&PROX[i]<=qLim){const qd=PROX[i],nm=qd===2?'vein2':'vein1',f=SPR[nm],w=P*(qd===2?.96:qd===3?.92:.8),h=w*f.h/f.w*(qd===2?.62:.7);
           // a painted vein across the block, flipped and nudged per block so a run of them does not look stamped
-          g.save();g.translate(X+P*.5,Y+P*(.34+((hh>>>5)%5)*.08));g.scale(hh&1?-1:1,(hh>>>1)&1?-1:1);g.rotate((((hh>>>9)%7)-3)*.035);g.globalAlpha=qd===2?.72:qd===3?.5:.3;frameBox(nm,-w/2,-h/2,w,h);g.restore();g.globalAlpha=1;
+          g.save();g.translate(X+P*.5,Y+P*(.34+((hh>>>5)%5)*.08));g.scale(hh&1?-1:1,(hh>>>1)&1?-1:1);g.rotate((((hh>>>9)%7)-3)*.035);// blended into the rock so the vein takes the rock's own colour, a shade or two lighter, with a faint pale core for definition
+          g.globalCompositeOperation='overlay';g.globalAlpha=qd===2?1:qd===3?.8:.55;frameBox(nm,-w/2,-h/2,w,h);g.globalCompositeOperation='source-over';g.globalAlpha=qd===2?.24:qd===3?.16:.1;frameBox(nm,-w/2,-h/2,w,h);g.restore();g.globalAlpha=1;
           if(Math.hypot(x+.5-p.x,y+.5-p.y)<5)quartzNear=true;}
         else if(t===STONE||t===DEEP||t===GRAN){const qd=PROX[i];if(qd>=2&&qd<=qLim){const o1=(hh%5)/10;const pth=()=>{g.beginPath();g.moveTo(X+P*.04,Y+P*(.2+o1));g.lineTo(X+P*.28,Y+P*(.3+o1));g.lineTo(X+P*.5,Y+P*(.42+o1*.5));g.lineTo(X+P*.74,Y+P*(.34+o1*.6));g.lineTo(X+P*.96,Y+P*(.3+o1*.8));if(qd===2){g.moveTo(X+P*.18,Y+P*(.82-o1*.3));g.lineTo(X+P*.5,Y+P*(.72-o1*.1));g.lineTo(X+P*.82,Y+P*(.68+o1*.2));g.moveTo(X+P*.5,Y+P*(.42+o1*.5));g.lineTo(X+P*.6,Y+P*(.62+o1*.2));}};
           const al=qd===2?.85:qd===3?.46:.28;g.strokeStyle=`rgba(255,255,255,${al*.28})`;g.lineWidth=Math.max(3,P*(qd===2?.2:.12));pth();g.stroke();g.strokeStyle=`rgba(246,242,232,${al})`;g.lineWidth=Math.max(1.5,P*(qd===2?.09:.05));pth();g.stroke();
