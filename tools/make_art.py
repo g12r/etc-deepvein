@@ -226,10 +226,12 @@ MS = 200.0 / miner[0].size[1]      # the standing miner is stored 200 px tall
 RS = 190.0 / max(f.size[0] for f in rat)
 names = ['idle', 'walk1', 'walk2', 'walk3', 'walk4', 'swing1', 'swing2', 'swing3', 'climb1', 'climb2']
 items = []
-for n, fr in zip(names, miner):
-    if n.startswith('walk') or n.startswith('climb'):
-        continue                                   # walking and climbing come from their own, fuller sheets below
-    items.append(('m_' + n, fr, MS, foot_x(fr)))
+# Standing, the three pick-swing poses (raised, mid swing, strike) and the walk all come from one sheet,
+# painted together so the miner has the same build in every pose. Everything shares one scale.
+allm = frames_from('miner_all.png', 4, 2)
+PS = 200.0 / allm[0].size[1]                       # the standing miner is stored 200 px tall
+for n, fr in zip(['idle', 'swing1', 'swing2', 'swing3'], allm[:4]):
+    items.append(('m_' + n, fr, PS, foot_x(fr)))
 
 
 def head_x(fr, part=.22):
@@ -239,12 +241,9 @@ def head_x(fr, part=.22):
     return float(xs.mean())
 
 
-# The walk: two rows of four poses. The fourth of each row repeats the first, so a step is poses 1 to 3 of a row,
-# and the two rows give two steps that differ a little.
-walk = frames_from('miner_walk.png', 4, 2)
-WS = 200.0 / walk[2].size[1]                       # the upright passing pose is as tall as the standing miner
-for k, j in enumerate([0, 1, 2, 4, 5, 6]):
-    items.append(('m_walk%d' % (k + 1), walk[j], WS, head_x(walk[j])))
+# The walk: stride, sink, knee up, stride, sink, knee up. The two strides are slightly different paintings.
+for k, j in enumerate([4, 5, 6, 7, 5, 6]):
+    items.append(('m_walk%d' % (k + 1), allm[j], PS, head_x(allm[j])))
 
 # The climb: reach, pull up, reach with the other arm (the first reach mirrored), pull up.
 # Every pose gets the same height with the hat at the top, so the head stays put while the legs tuck and stretch.
@@ -351,7 +350,7 @@ atlas = Image.new('RGBA', (W, y + rowh), (0, 0, 0, 0))
 for small, px, py in placed:
     atlas.paste(small, (px, py))
 atlas.save(os.path.join(OUT, 'sprites.webp'), 'WEBP', quality=92, method=6)
-meta['_minerHeight'] = round(miner[0].size[1] * MS)
+meta['_minerHeight'] = 200
 with open(os.path.join(OUT, 'sprites.json'), 'w') as f:
     json.dump(meta, f, separators=(',', ':'))
 print('sprites    %4d x %-4d %6d bytes, %d frames' % (atlas.size[0], atlas.size[1], os.path.getsize(os.path.join(OUT, 'sprites.webp')), len(items)))
