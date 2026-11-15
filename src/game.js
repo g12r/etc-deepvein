@@ -293,9 +293,12 @@ function progress(kind,amt){const c=G.contract;if(!c||c.k!==kind)return;const be
 
 let ovEl=null;
 function closeOverlay(){if(ovEl){ovEl.remove();ovEl=null;stage.focus({preventScroll:true});}}
-function overlay(html){closeOverlay();keys.clear();mouse.down=false;ovEl=document.createElement('div');ovEl.className='ov';ovEl.innerHTML=`<div class="card" role="dialog">${html}</div>`;stage.appendChild(ovEl);
-  setTimeout(()=>{if(ovEl&&!ovEl.contains(document.activeElement)){const f=ovEl.querySelector('input,button:not([disabled])');if(f)f.focus({preventScroll:true});}},30);
-  ovEl.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeOverlay();});ovEl.addEventListener('pointerdown',e=>e.stopPropagation());
+// X (the key, or the corner button) does whatever the dialog's own leave button does. Esc is left alone: the browser uses it to leave full screen.
+function dismissOverlay(){if(!ovEl)return;const b=ovEl.querySelector('[data-close]');if(b)b.click();else closeOverlay();}
+const isX=e=>(e.key==='x'||e.key==='X')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!(e.target&&e.target.type==='password');
+function overlay(html){closeOverlay();keys.clear();mouse.down=false;ovEl=document.createElement('div');ovEl.className='ov';ovEl.innerHTML=`<div class="card" role="dialog"><button class="xbtn" type="button" data-x aria-label="Close" title="Close (X)">×</button>${html}</div>`;stage.appendChild(ovEl);ovEl.querySelector('[data-x]').addEventListener('click',dismissOverlay);
+  setTimeout(()=>{if(ovEl&&!ovEl.contains(document.activeElement)){const f=ovEl.querySelector('input,button:not([disabled]):not([data-x])');if(f)f.focus({preventScroll:true});}},30);
+  ovEl.addEventListener('keydown',e=>{e.stopPropagation();if(isX(e)){e.preventDefault();dismissOverlay();}});ovEl.addEventListener('pointerdown',e=>e.stopPropagation());
   ovEl.addEventListener('click',e=>{if(e.target===ovEl)closeOverlay();});return ovEl;}
 const FAST=3; // seconds: an answer quicker than this earns the speed bonus
 function mathBox(hostEl,a,b,question,skipLabel,onDone){
@@ -338,7 +341,7 @@ function openStore(msg){
     else act=`<span class="price">$${pr}</span><button class="btn" data-buy="${it.id}" data-q="1" ${G.money<pr?'disabled':''}>Buy</button>${it.bulk?`<button class="ghost" data-buy="${it.id}" data-q="${it.bulk}" ${G.money<pr*it.bulk?'disabled':''}>×${it.bulk}</button>`:''}`;
     const have=it.once?(owned?'\u2713':'\u2013'):G.pack[it.id];
     return `<div class="rowitem shop${locked?' locked':''}"><span class="nm">${it.name}${deal&&!locked?' <span class="dealtag">Deal of the day</span>':''}</span><span class="ds">${it.ds}</span><span class="have${it.once?'':' num'}" ${it.once?'':`data-have="${it.id}"`} title="In your pack">${have}</span><div class="act">${act}</div></div>`;}).join('');
-  const ov=overlay(`<h3>General Store</h3><div class="sub">Cash: <span class="price" data-storecash>$${G.money}</span>. Rank: <b>${RANKS[rk][0]}</b>. What you buy goes in your pack, and you carry it down yourself.</div><div data-math></div><div class="rowitem shop shophead"><span>Item</span><span class="have">In pack</span><span class="act"></span></div>${rows}<div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+  const ov=overlay(`<div class="cashhead"><div><h3>General Store</h3><div class="sub">Rank: <b>${RANKS[rk][0]}</b>. What you buy goes in your pack, and you carry it down yourself.</div></div><div class="cashbig" data-cash aria-label="Your cash"></div></div><div data-math></div><div class="rowitem shop shophead"><span>Item</span><span class="have">In pack</span><span class="act"></span></div>${rows}<div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (X)</button></div>`);showCash();
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);
   ov.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>{
     const it=SHOP.find(s=>s.id===b.dataset.buy),q=+b.dataset.q,pr=priceOf(it);
@@ -353,7 +356,7 @@ function openStore(msg){
       setTimeout(()=>openStore(),1500);});
   }));
 }
-function buy(it,q,cost){if(G.money<cost)return;G.money-=cost;SFX.coins();flag('bought');setTimeout(()=>{document.querySelectorAll('[data-have]').forEach(el=>{const n=G.pack[el.dataset.have];if(String(n)!==el.textContent){el.textContent=n;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}});document.querySelectorAll('[data-storecash]').forEach(el=>{el.textContent='$'+G.money;});},0);
+function buy(it,q,cost){if(G.money<cost)return;G.money-=cost;SFX.coins();flag('bought');setTimeout(()=>{document.querySelectorAll('[data-have]').forEach(el=>{const n=G.pack[el.dataset.have];if(String(n)!==el.textContent){el.textContent=n;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}});showCash();},0);
   const id=it.id;if(id==='lantern')G.lantern=7.6;else if(id==='sack')G.cap=Math.max(G.cap,12);else if(id==='sack2')G.cap=20;else if(id==='steel')G.pick=3;else if(id==='diamond')G.pick=4;
   else if(id==='tank'){G.shift=480;G.oil=100;}else if(id==='carbide'){G.carbide=true;G.oil=100;}
   else{G.pack[id]+=q;if(['belt','rail','pump','hoist','cart','lift','drill','lamp'].includes(id)){G.f['had_'+id]=true;once('kit_'+id,`${it.name} is in your pack. Pick it from the toolbar to place it.`);}}hud();save();}
@@ -436,7 +439,7 @@ function pickRow(a){const now=Date.now(),cand=[];let tot=0,on=0;for(let b=1;b<=1
   let r=Math.random()*tot,pick=cand[0];for(const c of cand){r-=c[1];if(r<=0){pick=c;break;}}lastB=pick[0];return [a,pick[0]];}
 function openAssay(tab,msg){if(tab)assayTab=tab;const gd=G.geodes[0]+G.geodes[1]+G.geodes[2];
   const tabs=[['sell','Sell ore'],['geode',`Crack geodes${gd?` (${gd})`:''}`],['board',`Contracts${G.contract?'':' (new!)'}`]].map(([k,l])=>`<button class="tab" type="button" data-tab="${k}" aria-pressed="${assayTab===k}">${l}</button>`).join('');
-  const ov=overlay(`<div class="cashhead"><h3>Ore Exchange</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (Esc)</button></div>`);
+  const ov=overlay(`<div class="cashhead"><h3>Ore Exchange</h3><div class="cashbig" data-cash aria-label="Your cash"></div></div><div class="tabs">${tabs}</div><div data-body></div><div class="verdict ok">${msg||''}</div><div class="foot"><button class="ghost" data-close>Leave (X)</button></div>`);showCash();
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);ov.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openAssay(b.dataset.tab)));
   showCash();({sell:assaySell,geode:assayGeode,board:assayBoard})[assayTab](ov.querySelector('[data-body]'));}
 function showCash(){document.querySelectorAll('[data-cash]').forEach(el=>{el.innerHTML='$'+G.money+'<small>'+(G.debt?'you owe $'+G.debt:'your cash')+'</small>';});}
@@ -519,7 +522,7 @@ function openJournal(tab){if(tab)journalTab=tab;
     const tr=Object.keys(TROPHY).map(id=>`<span class="trophy${G.trophy[id]?' on':''}">${TROPHY[id]}${G.trophy[id]?` · Day ${G.trophy[id]}`:''}</span>`).join('');
     const fd=FINDS.map(f=>`<span class="trophy${G.finds[f[0]]?' on':''}">${G.finds[f[0]]?f[0]+' · Day '+G.finds[f[0]]:'? ? ?'}</span>`).join('');
     body=`<h4>Perks</h4><ul class="news">${pk}</ul><h4>Museum collection (${Object.keys(G.finds).length} of ${FINDS.length})</h4><div class="trophies">${fd}</div><h4>Trophies</h4><div class="trophies">${tr}</div>`;}
-  const ov=overlay(`<h3>Prospector's journal · Day ${G.day}</h3><div class="tabs">${tabs}</div>${body}<div class="foot"><button class="ghost" data-close>Close (Esc)</button></div>`);
+  const ov=overlay(`<h3>Prospector's journal · Day ${G.day}</h3><div class="tabs">${tabs}</div>${body}<div class="foot"><button class="ghost" data-close>Close (X)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);ov.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>openJournal(b.dataset.tab)));
   const c=ov.querySelector('.claimmap');if(c)drawClaimMap(c);}
 function drawClaimMap(c){const s=7,x=c.getContext('2d');c.width=COLS*s;c.height=ROWS*s;
@@ -724,7 +727,7 @@ function drawRat(r){if(spritesReady()){drawRatSprite(r);return;}const P=tilePx,u
 function callRat(){if(ovEl)return;if(!underground()){toast('Pip only delivers underground. The General Store is right up here!');return;}if(rats.length){toast('Pip is already on the way!');return;}
   const info=gd=>{const u=SHOP.find(x=>x.id===gd.id).price*2,cost=u*gd.q,tab=Math.max(0,cost-G.money);return {u,cost,tab,full:G.debt+tab>TABMAX};};
   const rows=RATGOODS.map(gd=>{const f=info(gd);return `<div class="rowitem"><span class="nm">${gd.q} ${gd.name}</span><span class="ds">$${f.u} each. That is double the store price.${f.tab&&!f.full?` $${f.tab} of it goes on your tab.`:''}</span><div class="act">${f.full?'<span class="lock">Your tab is full. Sell some ore first.</span>':`<span class="price">$${f.cost}</span><button class="btn" type="button" data-rat="${gd.id}">Send Pip</button>`}</div></div>`;}).join('');
-  const ov=overlay(`<div class="eyebrow">Emergency delivery</div><h3>Pip the pack rat</h3><p class="sub">Stuck without ladders or timber? Pip runs them down from the General Store. It costs <b>double</b>. What you can't pay now goes on your tab, and the store takes it out of your next sale.${G.debt?` You owe <span class="price">$${G.debt}</span> now.`:''}</p><div data-math></div>${rows}<div class="foot"><button class="ghost" data-close>Never mind (Esc)</button></div>`);
+  const ov=overlay(`<div class="eyebrow">Emergency delivery</div><h3>Pip the pack rat</h3><p class="sub">Stuck without ladders or timber? Pip runs them down from the General Store. It costs <b>double</b>. What you can't pay now goes on your tab, and the store takes it out of your next sale.${G.debt?` You owe <span class="price">$${G.debt}</span> now.`:''}</p><div data-math></div>${rows}<div class="foot"><button class="ghost" data-close>Never mind (X)</button></div>`);
   ov.querySelector('[data-close]').addEventListener('click',closeOverlay);
   ov.querySelectorAll('[data-rat]').forEach(bt=>bt.addEventListener('click',()=>{const gd=RATGOODS.find(x=>x.id===bt.dataset.rat),f=info(gd);
     ov.querySelectorAll('[data-rat]').forEach(x=>x.disabled=true);
@@ -739,7 +742,7 @@ const oilOffer=()=>underground()&&!G.carbide&&G.oil<25&&G.oilRun!==G.day&&!rats.
 function callOil(){if(ovEl)return;if(G.carbide){toast('Your carbide lamp never runs low.');return;}if(!underground()){toast('Pip only delivers underground.');return;}
   if(rats.length){toast('Pip is already on the way!');return;}if(G.oilRun===G.day){toast('Pip has already made his oil run today. Sleep at the Bunkhouse for a full lamp.');return;}if(G.oil>=25){toast('Your lamp is fine for now. Pip brings oil when it runs low.');return;}
   let got=0,n=0;
-  const ov=overlay(`<div class="eyebrow">Lamp running low</div><h3>Oil from Pip</h3><p class="sub">Pip will run lamp oil down to you. Answer up to <b>3 sums</b>: each right answer earns more time on your lamp, and half as much again if you are fast. One wrong answer and Pip sets off with what you have earned. He makes this run once a day.</p><div class="oilrun" data-run></div><div data-math></div><div class="foot"><button class="ghost" data-close>Never mind (Esc)</button></div>`);
+  const ov=overlay(`<div class="eyebrow">Lamp running low</div><h3>Oil from Pip</h3><p class="sub">Pip will run lamp oil down to you. Answer up to <b>3 sums</b>: each right answer earns more time on your lamp, and half as much again if you are fast. One wrong answer and Pip sets off with what you have earned. He makes this run once a day.</p><div class="oilrun" data-run></div><div data-math></div><div class="foot"><button class="ghost" data-close>Never mind (X)</button></div>`);
   const run=ov.querySelector('[data-run]'),host=ov.querySelector('[data-math]'),close=ov.querySelector('[data-close]');
   const show=()=>{run.innerHTML=OILNAMES.map((nm,k)=>`<span class="${k<n?'on':''}">${k+1}. ${nm}</span>`).join('')+`<b>${got?'+'+Math.round(got)+'% lamp oil':'No oil earned yet'}</b>`;};
   const send=()=>{if(ovEl===ov)closeOverlay();if(!got)return;G.oilRun=G.day;const c={id:'oil',n:got,name:'lamp oil'};G.pending=[c];save();spawnRat(c);toast(`Pip is on his way with oil: +${Math.round(got)}% for your lamp.`,3600);};
@@ -802,9 +805,9 @@ function waterTick(){
 /* ---------- input ---------- */
 const kname=e=>e.key.length===1?e.key.toLowerCase():e.key;
 const TOOLKEYS={'1':'pick','2':'ladder','3':'timber','4':'fill','5':'dyn','6':'survey','7':'belt','8':'rail','9':'pump','0':'hoist'};
-stage.addEventListener('keydown',e=>{if(ovEl){if(e.key==='Escape')closeOverlay();return;}const k=kname(e);
+stage.addEventListener('keydown',e=>{if(ovEl){if(isX(e)){e.preventDefault();dismissOverlay();}return;}const k=kname(e);
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(k)||(k.length===1&&'wasdemjlro1234567890'.includes(k)))e.preventDefault();
-  if(k==='Escape'){openMenu();return;}
+  if(k==='Escape'){if(!document.fullscreenElement)openMenu();return;}
   if(k==='m'||k==='j'){openJournal();return;}
   if(k==='l'){if(!G.pack.lamp&&!G.f.had_lamp)toast('Buy a mine lantern at the General Store first.');else{setTool('lamp');hud();}}
   if(TOOLKEYS[k]){const t=TOOLKEYS[k];if(['belt','rail','pump','hoist'].includes(t)&&!G.pack[t]&&!G.f['had_'+t])toast('Buy that at the General Store first.');else{setTool(t);hud();}}

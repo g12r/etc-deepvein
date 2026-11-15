@@ -35,7 +35,7 @@ for(let k=0;k<3;k++){q=await p.$eval('.ov .eq span',e=>e.textContent);[a,c]=q.ma
   console.log(' geode fact',q.trim(),'paid',(await ev(()=>window.__mine.G.money))-mm,'combo',await ev(()=>window.__mine.G.combo));}
 // contracts
 await p.click('[data-tab="board"]');await p.waitForTimeout(300);await p.screenshot({path:'a6.png'});await p.click('[data-take="0"]');await p.waitForTimeout(300);
-console.log('contract chip:',await p.$eval('#hContract',e=>e.textContent));await p.keyboard.press('Escape');
+console.log('contract chip:',await p.$eval('#hContract',e=>e.textContent));await p.keyboard.press('x');
 // --- sleep
 await ev(()=>{const M=window.__mine;M.p.x=27.5;M.p.y=10;});await p.waitForTimeout(600);console.log('prompt:',await p.$eval('.prompt',e=>e.hidden?'(hidden)':e.textContent));
 await p.keyboard.press('e');await p.waitForTimeout(300);await p.click('[data-sleep]');await p.waitForTimeout(400);await p.screenshot({path:'a7.png'});
@@ -47,7 +47,7 @@ const cards=await p.$$eval('.perkcard b',e=>e.map(x=>x.textContent));console.log
 console.log('perks now:',JSON.stringify(await ev(()=>window.__mine.G.perks)),'pending',await ev(()=>window.__mine.pendingPerks()));
 // --- cache and map clue, then the journal map
 await ev(()=>{const M=window.__mine,W=M.W();W[M.idx(17,21)]=11;for(let k=0;k<4;k++)M.dig(17,21);});await p.waitForTimeout(400);console.log('cache overlay:',await p.$eval('.ov h3',e=>e.textContent));await p.screenshot({path:'a9.png'});await p.click('.ov [data-close]');
-await p.keyboard.press('m');await p.waitForTimeout(400);await p.screenshot({path:'a10.png'});await p.click('[data-tab="perks"]');await p.waitForTimeout(200);await p.screenshot({path:'a11.png'});await p.keyboard.press('Escape');
+await p.keyboard.press('m');await p.waitForTimeout(400);await p.screenshot({path:'a10.png'});await p.click('[data-tab="perks"]');await p.waitForTimeout(200);await p.screenshot({path:'a11.png'});await p.keyboard.press('x');
 // --- the Mother Lode
 const lode=await ev(()=>{const M=window.__mine,W=M.W(),lx=M.G.lodeX;M.G.pick=4;M.p.x=lx+.5;for(let k=0;k<6;k++)M.dig(lx,78);return {sack:M.G.sack.gold,found:!!M.G.f.lode};});
 await p.waitForTimeout(1600);console.log('lode:',JSON.stringify(lode),'overlay:',await p.$eval('.ov h3',e=>e.textContent).catch(()=>'(none)'),'money',await ev(()=>window.__mine.G.money));

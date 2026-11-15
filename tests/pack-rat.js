@@ -27,6 +27,6 @@ await p.waitForFunction(()=>window.__mine.rats().length===0,null,{timeout:30000}
 await ev(()=>{const M=window.__mine;M.G.sack.gold=5;M.G.price=6;M.openAssay('sell');});await p.waitForTimeout(300);await p.click('.ov [data-skip]');await p.waitForTimeout(300);
 console.log('after selling $30 of gold:',JSON.stringify(await ev(()=>({money:window.__mine.G.money,debt:window.__mine.G.debt}))));
 // a save made mid-delivery hands the goods over on load
-await p.keyboard.press('Escape');await ev(()=>{const M=window.__mine;M.G.pending=[{id:'timber',n:3,name:'timber posts'}];M.save();});await p.reload();await p.waitForTimeout(900);
+await p.keyboard.press('x');await ev(()=>{const M=window.__mine;M.G.pending=[{id:'timber',n:3,name:'timber posts'}];M.save();});await p.reload();await p.waitForTimeout(900);
 console.log('after reload with a pending order: timber',await ev(()=>window.__mine.G.pack.timber),'pending',JSON.stringify(await ev(()=>window.__mine.G.pending)));
 console.log('errs',JSON.stringify(errs));await b.close();})();
