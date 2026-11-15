@@ -1315,9 +1315,9 @@ let swingAt=-9,swingWas=0;
 function drawMinerSprite(){const P=tilePx,sc=P*1.86/SPR._minerHeight,walking=p.ground&&Math.abs(p.vx)>.5;
   if(p.swing>swingWas+.2)swingAt=time;swingWas=p.swing;const since=time-swingAt;
   let fr='m_idle';
-  if(p.climb)fr=Math.floor(p.y*1.7)%2?'m_climb1':'m_climb2';
+  if(p.climb){const n=has('m_climb4')?4:2;fr='m_climb'+(1+((Math.floor(-p.y*3.4)%n)+n)%n);}
   else if(since<.34&&!p.riding)fr=since<.09?'m_swing3':since<.22?'m_swing1':'m_swing2'; // strike on the hit, then lift for the next one
-  else if(walking)fr='m_walk'+(1+Math.floor(time*9)%4);
+  else if(walking){const n=has('m_walk6')?6:4;fr='m_walk'+(1+Math.floor(p.x*4.2*p.face+1e4)%n);} // the stride follows the ground covered, so the feet do not slide
   else if(!p.ground&&!p.riding&&!p.onLift)fr='m_walk2';
   g.save();g.translate(p.x*P,p.y*P);
   if(p.ground&&!p.climb){g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,0,P*.42,P*.085,0,0,7);g.fill();}

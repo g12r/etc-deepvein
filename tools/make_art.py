@@ -227,8 +227,35 @@ RS = 190.0 / max(f.size[0] for f in rat)
 names = ['idle', 'walk1', 'walk2', 'walk3', 'walk4', 'swing1', 'swing2', 'swing3', 'climb1', 'climb2']
 items = []
 for n, fr in zip(names, miner):
-    ax = fr.size[0] / 2 if n.startswith('climb') else foot_x(fr)
-    items.append(('m_' + n, fr, MS, ax))
+    if n.startswith('walk') or n.startswith('climb'):
+        continue                                   # walking and climbing come from their own, fuller sheets below
+    items.append(('m_' + n, fr, MS, foot_x(fr)))
+
+
+def head_x(fr, part=.22):
+    """Where the hat is, left to right: steadier than the feet when the legs swing wide."""
+    a = np.asarray(fr)[..., 3]
+    xs = np.where(a[:int(a.shape[0] * part)] > 60)[1]
+    return float(xs.mean())
+
+
+# The walk: two rows of four poses. The fourth of each row repeats the first, so a step is poses 1 to 3 of a row,
+# and the two rows give two steps that differ a little.
+walk = frames_from('miner_walk.png', 4, 2)
+WS = 200.0 / walk[2].size[1]                       # the upright passing pose is as tall as the standing miner
+for k, j in enumerate([0, 1, 2, 4, 5, 6]):
+    items.append(('m_walk%d' % (k + 1), walk[j], WS, head_x(walk[j])))
+
+# The climb: reach, pull up, reach with the other arm (the first reach mirrored), pull up.
+# Every pose gets the same height with the hat at the top, so the head stays put while the legs tuck and stretch.
+climb = frames_from('miner_climb.png', 4, 1)
+climb[2] = climb[2].transpose(Image.FLIP_LEFT_RIGHT)
+CS = 216.0 / climb[0].size[1]
+tall = max(c.size[1] for c in climb)
+for k, c in enumerate(climb):
+    full = Image.new('RGBA', (c.size[0], tall), (0, 0, 0, 0))
+    full.paste(c, (0, 0))
+    items.append(('m_climb%d' % (k + 1), full, CS, head_x(c, .2)))
 for k, fr in enumerate(rat):
     items.append((('r_full%d' if k < 4 else 'r_empty%d') % (k % 4 + 1), fr, RS, fr.size[0] / 2))
 # ---- quartz veins and cracks, the machines, timber, belt and rail: more frames for the same atlas ----
