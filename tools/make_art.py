@@ -93,15 +93,21 @@ print('ladder: rungs every %d px; section holds %d' % (period, RUNGS))
 save(sec, 'ladder', height=192)
 
 
-# ---------- rock and tunnel-wall tiles: six of each, any of which can sit next to any other ----------
+# ---------- rock and tunnel-wall tiles: sixteen of each, laid so that neighbours always match ----------
+# Each of a tile's four edges comes in two versions. A tile is named by which version it has on its
+# top, right, bottom and left, which gives 16 tiles. The game gives every edge in the world a random
+# version and picks the tile that fits, so no ring of pixels is shared by every tile and the eye has
+# far less to lock on to. Only a small patch at each corner is the same everywhere.
 from PIL import ImageFilter
 
-T = 128          # tile size in the game art
+T = 128             # tile size in the game art
 SRC_PER_TILE = 230  # how many pixels of the source painting one tile covers
+EDGE = 26           # how far in from an edge its shared strip reaches
+CORNER = 26         # along an edge, how far from a corner the shared corner patch holds
 
 
 def flatten(im, keep):
-    """Take out the big light-to-dark sweep painted across the texture, so repeats do not show as a pattern."""
+    """Take out any big light-to-dark sweep painted across the texture, so repeats do not show as a pattern."""
     a = np.asarray(im.convert('RGB')).astype(float)
     lum = a.mean(axis=2)
     half = im.size[0] // 2
@@ -117,54 +123,73 @@ def smooth(t):
     return t * t * (3 - 2 * t)
 
 
-def wrap_tile(tex, x0, y0, lap=36):
-    """A tile whose right edge runs into its own left edge, and bottom into top, by cross-fading an overlap."""
-    big = tex[y0:y0 + T + lap, x0:x0 + T + lap].copy()
-    w = smooth(np.arange(lap) / (lap - 1))
-    big[:, :lap] = big[:, T:T + lap] * (1 - w)[None, :, None] + big[:, :lap] * w[None, :, None]
-    big = big[:, :T]
-    big[:lap] = big[T:T + lap] * (1 - w)[:, None, None] + big[:lap] * w[:, None, None]
-    return big[:T]
-
-
-def tile_set(quadrant, name, keep, count=6):
-    sheet = Image.open(os.path.join(SRC, 'tiles.png')).convert('RGB')
-    h = sheet.size[0] // 2
-    q = sheet.crop(((quadrant % 2) * h, (quadrant // 2) * h, (quadrant % 2 + 1) * h, (quadrant // 2 + 1) * h))
-    size = round(h * T / SRC_PER_TILE)
+def tile_set(source, name, keep, seed):
+    q = Image.open(os.path.join(SRC, source)).convert('RGB')
+    size = round(q.size[0] * T / SRC_PER_TILE)
     tex = np.asarray(Image.fromarray(flatten(q, keep).astype('uint8')).resize((size, size), Image.LANCZOS)).astype(float)
-    room = size - T - 40
-    base = wrap_tile(tex, 0, 0)
-    # every tile keeps the base tile's outer ring, so all of them share the same edges
-    d = np.minimum.reduce(np.meshgrid(np.minimum(np.arange(T), T - 1 - np.arange(T)), np.minimum(np.arange(T), T - 1 - np.arange(T))))
-    inner = smooth((d - 5) / 26.0)[..., None]
-    rng = np.random.RandomState(7 + quadrant)
-    tiles = [base]
-    spots = [(room, 0), (0, room), (room, room), (room // 2, room // 3), (room // 3, room)]
-    for k in range(count - 1):
-        x0, y0 = spots[k]
-        crop = tex[y0:y0 + T, x0:x0 + T]
-        if k % 2:
-            crop = crop[:, ::-1]
-        tiles.append(base * (1 - inner) + crop * inner)
-    # how well do edges meet? compare the step across a join with the step between neighbouring pixels inside a tile
-    inside = np.mean([np.abs(t[:, 1:] - t[:, :-1]).mean() for t in tiles])
-    joins = [np.abs(a[:, -1] - b[:, 0]).mean() for a in tiles for b in tiles] + [np.abs(a[-1] - b[0]).mean() for a in tiles for b in tiles]
-    print('%s: step across a join %.1f (worst %.1f) against %.1f inside a tile' % (name, np.mean(joins), np.max(joins), inside))
-    for k, t in enumerate(tiles):
-        Image.fromarray(np.clip(t, 0, 255).astype('uint8')).save(os.path.join(OUT, '%s%d.webp' % (name, k + 1)), 'WEBP', quality=88, method=6)
-    # a contact sheet of the tiles laid at random, for checking by eye
-    n = 8
-    sheet = np.zeros((T * n, T * n, 3))
-    for j in range(n):
-        for i in range(n):
-            sheet[j * T:(j + 1) * T, i * T:(i + 1) * T] = tiles[rng.randint(count)]
+    rng = np.random.RandomState(seed)
+    room = size - T
+
+    def patch():
+        x0, y0 = rng.randint(0, room + 1), rng.randint(0, room + 1)
+        return tex[y0:y0 + T, x0:x0 + T]
+
+    half = T // 2
+    # the corner patch and the edge strips are painted around the middle of a crop, then shifted by half
+    # a tile, so the crop's own unbroken middle is what lands on the tile's corner or edge
+    corner = np.roll(patch(), (half, half), axis=(0, 1))
+    horiz = [np.roll(patch(), half, axis=0) for _ in range(2)]   # for top and bottom edges
+    vert = [np.roll(patch(), half, axis=1) for _ in range(2)]    # for left and right edges
+    yy, xx = np.mgrid[0:T, 0:T]
+    along_x = np.minimum(xx, T - 1 - xx)
+    along_y = np.minimum(yy, T - 1 - yy)
+    to_corner_x = (1 - smooth((along_x - CORNER) / 20.0))[..., None]
+    to_corner_y = (1 - smooth((along_y - CORNER) / 20.0))[..., None]
+    horiz = [h * (1 - to_corner_x) + corner * to_corner_x for h in horiz]
+    vert = [v * (1 - to_corner_y) + corner * to_corner_y for v in vert]
+    near = lambda d: smooth(1 - d / float(EDGE))[..., None]
+    # interiors come from a grid of crops that do not overlap one another
+    per = (size - 4) // T
+    stride = room // (per - 1)
+    cells = [(i * stride, j * stride) for j in range(per) for i in range(per)]
+    rng.shuffle(cells)
+    tiles = {}
+    for k in range(16):
+        n, e, s, w = k & 1, (k >> 1) & 1, (k >> 2) & 1, (k >> 3) & 1
+        x0, y0 = cells[k % len(cells)]
+        out = tex[y0:y0 + T, x0:x0 + T].copy()
+        for layer, d in ((horiz[n], yy), (horiz[s], T - 1 - yy), (vert[w], xx), (vert[e], T - 1 - xx)):
+            wgt = near(d)
+            out = out * (1 - wgt) + layer * wgt
+        tiles[k] = out
+    # measure every legal join against the ordinary step between neighbouring pixels inside a tile
+    inside = np.mean([np.abs(t[:, 1:] - t[:, :-1]).mean() for t in tiles.values()])
+    joins = []
+    for a in range(16):
+        for b in range(16):
+            if (a >> 1) & 1 == (b >> 3) & 1:
+                joins.append(np.abs(tiles[a][:, -1] - tiles[b][:, 0]).mean())   # a's right edge against b's left
+            if (a >> 2) & 1 == b & 1:
+                joins.append(np.abs(tiles[a][-1] - tiles[b][0]).mean())         # a's bottom against b's top
+    print('%s: 16 tiles; step across a join %.1f (worst %.1f) against %.1f inside a tile; %d interior crops that do not overlap'
+          % (name, np.mean(joins), np.max(joins), inside, len(cells)))
+    for k, t in tiles.items():
+        Image.fromarray(np.clip(t, 0, 255).astype('uint8')).save(os.path.join(OUT, '%s%d.webp' % (name, k)), 'WEBP', quality=88, method=6)
+    # a check image: tiles laid the way the game lays them, with random edge versions
+    cols = 10
+    hb = rng.randint(0, 2, (cols + 1, cols))
+    vb = rng.randint(0, 2, (cols, cols + 1))
+    sheet = np.zeros((T * cols, T * cols, 3))
+    for j in range(cols):
+        for i in range(cols):
+            k = hb[j, i] | (vb[j, i + 1] << 1) | (hb[j + 1, i] << 2) | (vb[j, i] << 3)
+            sheet[j * T:(j + 1) * T, i * T:(i + 1) * T] = tiles[k]
     return Image.fromarray(np.clip(sheet, 0, 255).astype('uint8'))
 
 
 CHECK = os.path.join(ROOT, 'docs', 'proposals', 'art-test')
-tile_set(0, 'rock', keep=.1).save(os.path.join(CHECK, 'seamless-rock-check.jpg'), quality=88)
-tile_set(3, 'wall', keep=.05).save(os.path.join(CHECK, 'seamless-wall-check.jpg'), quality=88)
+tile_set('rock.png', 'rock', keep=.35, seed=11).save(os.path.join(CHECK, 'seamless-rock-check.jpg'), quality=88)
+tile_set('wall.png', 'wall', keep=.3, seed=23).save(os.path.join(CHECK, 'seamless-wall-check.jpg'), quality=88)
 
 
 # ---------- the miner and Pip: pose sheets cut into animation frames, packed into one atlas ----------
