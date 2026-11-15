@@ -1337,14 +1337,15 @@ function frameOn(name,cx,bottom,w){const f=SPR[name],h=w*f.h/f.w;frameBox(name,c
 // crack decals tinted for a roof that is about to give way
 let hotCracks=null;
 function hotCrack(k){if(!hotCracks){hotCracks=[1,2,3].map(n=>{const f=SPR['crack'+n],c=document.createElement('canvas');c.width=f.w;c.height=f.h;const x=c.getContext('2d');x.drawImage(AI.sprites,f.x,f.y,f.w,f.h,0,0,f.w,f.h);x.globalCompositeOperation='source-atop';x.fillStyle='rgba(255,96,48,.85)';x.fillRect(0,0,f.w,f.h);return c;});}return hotCracks[k-1];}
-let swingAt=-9,swingWas=0;
+let swingAt=-9,swingWas=0,walkPh=0,walkWas=0;
 function drawMinerSprite(){const P=tilePx,sc=P*1.86/SPR._minerHeight,walking=p.ground&&Math.abs(p.vx)>.5;
   if(p.swing>swingWas+.2)swingAt=time;swingWas=p.swing;const since=time-swingAt;
   let fr='m_idle';
   if(p.climb){const n=has('m_climb4')?4:2;fr='m_climb'+(1+((Math.floor(-p.y*3.4)%n)+n)%n);}
   else if(since<.34&&!p.riding)fr=since<.09?'m_swing3':since<.22?'m_swing1':'m_swing2'; // strike on the hit, then lift for the next one
-  else if(walking){const n=has('m_walk6')?6:4;fr='m_walk'+(1+Math.floor(p.x*4.2*p.face+1e4)%n);} // the stride follows the ground covered, so the feet do not slide
+  else if(walking){const n=has('m_walk6')?6:4;walkPh+=Math.min(.05,time-walkWas)*10.5*Math.min(1,Math.abs(p.vx)/5);fr='m_walk'+(1+Math.floor(walkPh)%n);} // about three and a half steps a second at full speed
   else if(!p.ground&&!p.riding&&!p.onLift)fr='m_walk2';
+  if(!walking)walkPh=0;walkWas=time;
   g.save();g.translate(p.x*P,p.y*P);
   if(p.ground&&!p.climb){g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,0,P*.42,P*.085,0,0,7);g.fill();}
   if(p.stun>0)g.rotate(Math.sin(time*30)*.06);

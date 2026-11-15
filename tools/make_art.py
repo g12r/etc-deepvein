@@ -230,8 +230,30 @@ items = []
 # painted together so the miner has the same build in every pose. Everything shares one scale.
 allm = frames_from('miner_all.png', 4, 2)
 PS = 200.0 / allm[0].size[1]                       # the standing miner is stored 200 px tall
-for n, fr in zip(['idle', 'swing1', 'swing2', 'swing3'], allm[:4]):
-    items.append(('m_' + n, fr, PS, foot_x(fr)))
+
+
+def rear_foot_x(fr, half):
+    """The planted back foot: its heel edge plus half a stance. Keeps him rooted while he swings."""
+    a = np.asarray(fr)[..., 3]
+    xs = np.where(a[int(a.shape[0] * .9):] > 60)[1]
+    return float(xs.min() + half)
+
+
+_ib = np.where(np.asarray(allm[0])[..., 3][int(allm[0].size[1] * .9):] > 60)[1]
+STANCE = (_ib.max() - _ib.min()) / 2.0             # half the width of his two feet standing together
+items.append(('m_idle', allm[0], PS, rear_foot_x(allm[0], STANCE)))
+
+
+def shirt_x(fr):
+    """The middle of his blue shirt: where his chest is, whatever his arms and legs are doing."""
+    px = np.asarray(fr).astype(int)
+    blue = (px[..., 3] > 60) & (px[..., 2] > px[..., 0] + 30) & (px[..., 2] > px[..., 1] + 10)
+    return float(np.where(blue)[1].mean())
+
+
+CHEST_LEAD = shirt_x(allm[0]) - rear_foot_x(allm[0], STANCE)
+for n, fr, lean in zip(['swing1', 'swing2', 'swing3'], allm[1:4], [0, 14, 26]):   # he leans into the swing a little
+    items.append(('m_' + n, fr, PS, shirt_x(fr) - CHEST_LEAD - lean))
 
 
 def head_x(fr, part=.22):
@@ -241,9 +263,10 @@ def head_x(fr, part=.22):
     return float(xs.mean())
 
 
+HEAD_LEAD = head_x(allm[0]) - rear_foot_x(allm[0], STANCE)   # how far his hat sits ahead of his feet when standing
 # The walk: stride, sink, knee up, stride, sink, knee up. The two strides are slightly different paintings.
 for k, j in enumerate([4, 5, 6, 7, 5, 6]):
-    items.append(('m_walk%d' % (k + 1), allm[j], PS, head_x(allm[j])))
+    items.append(('m_walk%d' % (k + 1), allm[j], PS, head_x(allm[j]) - HEAD_LEAD))   # the head stays where it is when he stands
 
 # The climb: reach, pull up, reach with the other arm (the first reach mirrored), pull up.
 # Every pose gets the same height with the hat at the top, so the head stays put while the legs tuck and stretch.
