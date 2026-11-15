@@ -196,13 +196,14 @@ tile_set('wall.png', 'wall', keep=.3, seed=23).save(os.path.join(CHECK, 'seamles
 import json
 
 
-def frames_from(sheet_name, cols, rows):
+def frames_from(sheet_name, cols, rows, row_edges=None):
     im = key(sheet_name)
     cw, ch = im.size[0] // cols, im.size[1] // rows
+    edges = row_edges or [r * ch for r in range(rows)] + [im.size[1]]   # where one row of the sheet ends and the next begins
     out = []
     for r in range(rows):
         for c in range(cols):
-            cell = im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch))
+            cell = im.crop((c * cw, edges[r], (c + 1) * cw, edges[r + 1]))
             a = np.asarray(cell)[..., 3]
             a = np.where(a > 60, a, 0)                      # drop faint specks before measuring
             ys, xs = np.where(a > 0)
@@ -230,6 +231,56 @@ for n, fr in zip(names, miner):
     items.append(('m_' + n, fr, MS, ax))
 for k, fr in enumerate(rat):
     items.append((('r_full%d' if k < 4 else 'r_empty%d') % (k % 4 + 1), fr, RS, fr.size[0] / 2))
+# ---- quartz veins and cracks, the machines, timber, belt and rail: more frames for the same atlas ----
+def add(name, fr, width=None, height=None, ax=None):
+    sc = (width / float(fr.size[0])) if width else (height / float(fr.size[1]))
+    items.append((name, fr, sc, fr.size[0] / 2.0 if ax is None else ax))
+
+
+decals = frames_from('decals.png', 3, 2)
+for n, fr in zip(['vein1', 'vein2', 'vein3'], decals[:3]):
+    add(n, fr, width=150)
+for n, fr in zip(['crack1', 'crack2', 'crack3'], decals[3:]):
+    add(n, fr, width=[70, 120, 140][int(n[-1]) - 1])
+
+mach = frames_from('machines.png', 3, 2)
+add('pump', mach[0], height=210)
+add('drill', mach[1], width=180)
+add('cart', mach[2], width=140)
+add('cage', mach[3], height=270)
+add('bucket', mach[4], width=120)
+add('lantern', mach[5], height=120)
+
+parts = frames_from('timber.png', 2, 2, row_edges=[0, 640, 1024])   # the posts are taller than half the sheet
+for tag, fr in (('post', parts[0]), ('tall', parts[1])):
+    a = np.asarray(fr)[..., 3] > 60
+    widths = a.sum(axis=1)
+    post_w = np.median(widths[int(len(widths) * .6):int(len(widths) * .9)])
+    cap_end = max(y for y in range(len(widths) // 2) if widths[y] > post_w * 1.25) + 2   # last row of the braces
+    beam_end = max(y for y in range(cap_end) if widths[y] > widths.max() * .93) + 1       # last row of the beam itself
+    cols = np.where(a[int(len(widths) * .6):int(len(widths) * .9)].any(axis=0))[0]
+    body = fr.crop((cols.min(), cap_end + 6, cols.max() + 1, int(fr.size[1] * .8)))       # the post, without its ragged foot
+    W = 250 if tag == 'post' else 280
+    sc = W / float(fr.size[0])
+    items.append((tag + '_cap', fr.crop((0, 0, fr.size[0], cap_end)), sc, fr.size[0] / 2.0))
+    items.append((tag + '_body', body, sc, body.size[0] / 2.0))
+    if tag == 'post':
+        items.append(('beam', fr.crop((0, 0, fr.size[0], beam_end)), sc, fr.size[0] / 2.0))
+    print('%s: post is %.0f%% of the cap width; cap and braces take the top %.0f%%' % (tag, 100.0 * body.size[0] / fr.size[0], 100.0 * cap_end / fr.size[1]))
+
+belt = parts[2]
+add('belt', belt.crop((int(belt.size[0] * .3), 0, int(belt.size[0] * .7), belt.size[1])), width=128)
+rail = parts[3]
+ra = (np.asarray(rail)[..., 3] > 60)
+ties = ra[int(rail.size[1] * .7):].mean(axis=0)                 # the cross ties show as bumps along the bottom
+tp = ties - ties.mean()
+tac = np.correlate(tp, tp, 'full')[len(tp) - 1:]
+tper = 30 + int(np.argmax(tac[30:len(tp) // 3]))
+start = len(ties) // 4
+start += int(np.argmin(np.convolve(ties[start:start + tper], np.ones(5) / 5, 'same')))
+add('rail', rail.crop((start, 0, start + tper * 3, rail.size[1])), width=128)
+print('rail: ties every %d px; the section holds 3' % tper)
+
 # pack in rows
 meta, x, y, rowh, W = {}, 0, 0, 0, 1024
 placed = []
